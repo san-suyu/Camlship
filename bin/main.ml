@@ -25,8 +25,7 @@ let () =
             print_endline
               "Invalid placement. Ships must be placed in a straight line on \
                the grid.";
-            game_loop
-              ship_count (* Do not increment the ship count on failure *)
+            game_loop ship_count
           end
     end
     else print_endline "All ships placed. Game ready to start!"
