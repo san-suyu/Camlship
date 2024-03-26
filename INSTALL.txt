@@ -1,0 +1,4 @@
+No specific installation is required.
+This should function like a standard assignment. 
+To run the program, access the directory and 
+execute `dune exec bin/main.exe`.
