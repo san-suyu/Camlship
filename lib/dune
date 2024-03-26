@@ -1,3 +1,4 @@
 (library
  (name battleship)
- (modules battleship))
+ (modules battleship)
+ (libraries lwt lablgtk2 lwt_glib))
