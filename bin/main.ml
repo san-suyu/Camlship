@@ -36,7 +36,7 @@ let () =
             Scanf.sscanf input "%d %d %d %d" (fun x1 y1 x2 y2 ->
                 ((x1, y1), (x2, y2)))
           in
-          if place_ship grid (fst coords) (snd coords) then begin
+          if place_ship grid (fst coords) (snd coords) grid_size then begin
             print_endline "Ship placed successfully!";
             game_loop (ship_count + 1)
           end
