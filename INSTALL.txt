@@ -1,4 +1,2 @@
-No specific installation is required.
-This should function like a standard assignment. 
-To run the program, access the directory and 
-execute `dune exec bin/main.exe`.
+In terminal, run `opam install lwt lwt_glib lablgtk` to install library.
+Then to run the program, access the directory and execute `dune exec bin/main.exe`.
