@@ -14,7 +14,7 @@ let valid_ship_placement_tests =
              ~printer:string_of_bool );
          ( "edge of grid" >:: fun _ ->
            assert_equal true
-             (Battleship.is_valid_placement (2, 2) (2, 2) 2)
+             (Battleship.is_valid_placement (1, 1) (1, 1) 2)
              ~printer:string_of_bool );
        ]
 
