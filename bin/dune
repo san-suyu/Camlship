@@ -1,4 +1,4 @@
 (executable
- (public_name final_test)
+ (public_name 3110project-1)
  (name main)
  (libraries battleship))
