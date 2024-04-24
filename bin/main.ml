@@ -183,7 +183,9 @@ let game_loop grid1 grid2 =
             Printf.printf "AI's turn: %s\n" ai_result;
             if (not (check_game_over grid1)) && not (check_game_over grid2) then
               shoot_phase ()
-            else print_endline "Game over! All ships have been hit.")
+            else if check_game_over grid1 then
+              print_endline "Game over! You win!"
+            else print_endline "Game over! You lose.")
           else shoot_phase ()
   in
   place_ships 0
