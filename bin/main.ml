@@ -47,7 +47,7 @@ let ai_guess grid =
   shoot grid (y, x)
 
 let rec quit_game ask =
-  if ask = "Quit" then print_endline "Are you sure you want to quit?";
+  if ask = "Quit" then print_endline "Are you sure you\n   want to quit?";
   match read_line () with
   | input ->
       let quit = yes_no input in

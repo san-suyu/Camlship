@@ -13,11 +13,11 @@ let ship_check grid (y1, x1) (y2, x2) =
   let check = ref true in
   let () =
     if y1 = y2 then
-      for index = x1 - 1 to x2 - 1 do
+      for index = x1 to x2 do
         if grid.(y1).(index) = Ship then check := false else ()
       done
     else
-      for index = y1 - 1 to y2 - 1 do
+      for index = y1 to y2 do
         if grid.(index).(x1) = Ship then check := false else ()
       done
   in
@@ -26,7 +26,8 @@ let ship_check grid (y1, x1) (y2, x2) =
 let is_valid_placement grid (y1, x1) (y2, x2) =
   let size = Array.length grid in
   let size_check = x1 <= size && x2 <= size && y1 <= size && y2 <= size in
-  (size_check && ship_check grid (y1, x1) (y2, x2))
+  size_check
+  && ship_check grid (y1, x1) (y2, x2)
   && ((x1 = x2 && abs (y2 - y1) >= 0)
      || (size_check && y1 = y2 && abs (x2 - x1) >= 0))
 
