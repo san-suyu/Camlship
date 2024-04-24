@@ -71,33 +71,36 @@ let game_loop grid1 grid2 =
       match read_line () with
       | exception End_of_file -> ()
       | input -> (
-          let coords =
-            Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
-                ((char_to_index y1, x1), (char_to_index y2, x2)))
-          in
-          match place_ship grid1 (fst coords) (snd coords) with
-          | true ->
-              let () = print_endline "Ship placed successfully!" in
-              place_ships (count + 1)
-          | false ->
-              let () =
-                print_endline
-                  "Invalid placement. Ships must be placed in a straight line \
-                   on the grid and must not overlap with other ships."
-              in
-              place_ships count
-          | exception Invalid_argument _ -> (
-              match place_ship grid1 (snd coords) (fst coords) with
-              | true ->
-                  let () = print_endline "Ship placed successfully!" in
-                  place_ships (count + 1)
-              | false ->
-                  let () =
-                    print_endline
-                      "Invalid placement. Ships must be placed in a straight \
-                       line on the grid and must not overlap with other ships."
-                  in
-                  place_ships count))
+          if quit_game input == Some true then place_ships count
+          else
+            let coords =
+              Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
+                  ((char_to_index y1, x1), (char_to_index y2, x2)))
+            in
+            match place_ship grid1 (fst coords) (snd coords) with
+            | true ->
+                let () = print_endline "Ship placed successfully!" in
+                place_ships (count + 1)
+            | false ->
+                let () =
+                  print_endline
+                    "Invalid placement. Ships must be placed in a straight \
+                     line on the grid and must not overlap with other ships."
+                in
+                place_ships count
+            | exception Invalid_argument _ -> (
+                match place_ship grid1 (snd coords) (fst coords) with
+                | true ->
+                    let () = print_endline "Ship placed successfully!" in
+                    place_ships (count + 1)
+                | false ->
+                    let () =
+                      print_endline
+                        "Invalid placement. Ships must be placed in a straight \
+                         line on the grid and must not overlap with other \
+                         ships."
+                    in
+                    place_ships count))
     end
     else shoot_phase ()
   and shoot_phase () =
