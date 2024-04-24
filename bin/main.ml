@@ -114,7 +114,7 @@ let rec quit_game ask =
         if quit = Some true then failwith "Game Exited"
         else if quit = Some false then (
           print_endline "Continuing...";
-          Some true)
+          Some false)
         else quit_game "Quit")
   else None
 
@@ -130,7 +130,7 @@ let game_loop grid1 grid2 =
       match read_line () with
       | exception End_of_file -> ()
       | input -> (
-          if quit_game input == Some true then place_ships count
+          if quit_game input == Some false then place_ships count
           else
             let coords =
               Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
@@ -171,18 +171,20 @@ let game_loop grid1 grid2 =
     match read_line () with
     | exception End_of_file -> ()
     | input ->
-        let coords =
-          Scanf.sscanf input "%c %d" (fun y x -> (char_to_index y, x))
-        in
-        let result = shoot grid2 coords in
-        Printf.printf "%s\n" result;
-        if result != "Already guessed this position!" then (
-          let ai_result = ai_guess grid1 in
-          Printf.printf "AI's turn: %s\n" ai_result;
-          if (not (check_game_over grid1)) && not (check_game_over grid2) then
-            shoot_phase ()
-          else print_endline "Game over! All ships have been hit.")
-        else shoot_phase ()
+        if quit_game input == Some false then shoot_phase ()
+        else
+          let coords =
+            Scanf.sscanf input "%c %d" (fun y x -> (char_to_index y, x))
+          in
+          let result = shoot grid2 coords in
+          Printf.printf "%s\n" result;
+          if result != "Already guessed this position!" then (
+            let ai_result = ai_guess grid1 in
+            Printf.printf "AI's turn: %s\n" ai_result;
+            if (not (check_game_over grid1)) && not (check_game_over grid2) then
+              shoot_phase ()
+            else print_endline "Game over! All ships have been hit.")
+          else shoot_phase ()
   in
   place_ships 0
 
