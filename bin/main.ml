@@ -47,13 +47,17 @@ let ai_guess grid =
   shoot grid (y, x)
 
 let rec quit_game ask =
-  if ask = "Quit" then print_endline "Are you sure you want to quit?";
-  match read_line () with
-  | input ->
-      let quit = yes_no input in
-      if quit = Some true then failwith "Game Exited"
-      else if quit = Some false then ignore
-      else quit_game "Quit"
+  if ask = "Quit" || ask = "quit" then (
+    print_endline "Do you want to quit the game?";
+    match read_line () with
+    | input ->
+        let quit = yes_no input in
+        if quit = Some true then failwith "Game Exited"
+        else if quit = Some false then (
+          print_endline "Continuing...";
+          Some true)
+        else quit_game "Quit")
+  else None
 
 let game_loop grid1 grid2 =
   let max_ships = 5 in
@@ -67,20 +71,22 @@ let game_loop grid1 grid2 =
       match read_line () with
       | exception End_of_file -> ()
       | input ->
-          let coords =
-            Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
-                ((char_to_index y1, x1), (char_to_index y2, x2)))
-          in
-          if place_ship grid1 (fst coords) (snd coords) then begin
-            print_endline "Ship placed successfully!";
-            place_ships (count + 1)
-          end
-          else begin
-            print_endline
-              "Invalid placement. Ships must be placed in a straight line on \
-               the grid.";
-            place_ships count
-          end
+          if quit_game input == Some true then place_ships count
+          else
+            let coords =
+              Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
+                  ((char_to_index y1, x1), (char_to_index y2, x2)))
+            in
+            if place_ship grid1 (fst coords) (snd coords) then begin
+              print_endline "Ship placed successfully!";
+              place_ships (count + 1)
+            end
+            else begin
+              print_endline
+                "Invalid placement. Ships must be placed in a straight line on \
+                 the grid.";
+              place_ships count
+            end
     end
     else shoot_phase ()
   and shoot_phase () =
