@@ -59,7 +59,6 @@ let get_state box =
   else if s = red then Miss
   else failwith "Unrecognized state style"
 
-
 let print_grid grid show_ships =
   let grid_size = Array.length grid in
   Printf.printf "   ";
@@ -177,21 +176,23 @@ let game_loop grid1 grid2 =
         in
         let result = shoot grid2 coords in
         Printf.printf "%s\n" result;
-        let ai_result = ai_guess grid1 in
-        Printf.printf "AI's turn: %s\n" ai_result;
-        if (not (check_game_over grid1)) && not (check_game_over grid2) then
-          shoot_phase ()
-        else print_endline "Game over! All ships have been hit."
+        if result != "Already guessed this position!" then (
+          let ai_result = ai_guess grid1 in
+          Printf.printf "AI's turn: %s\n" ai_result;
+          if (not (check_game_over grid1)) && not (check_game_over grid2) then
+            shoot_phase ()
+          else print_endline "Game over! All ships have been hit.")
+        else shoot_phase ()
   in
   place_ships 0
-  
+
 let init =
   Random.self_init ();
   let grid_size = 10 in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   random_placement grid2 5 4;
-  (* game_loop grid1 grid2; *)
+  (*game_loop grid1 grid2*)
   let ws1 = make_widgets grid1 in
   let ws2 = make_widgets grid2 in
   let board = L.tower [ make_layout ws1; make_layout ws2 ] in
