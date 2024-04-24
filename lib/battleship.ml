@@ -48,8 +48,8 @@ let place_ship grid (y1, x1) (y2, x2) =
     let coords =
       List.init length (fun i ->
           match dir with
-          | `Horizontal -> (y1, x1 + i)
-          | `Vertical -> (y1 + i, x1))
+          | `Horizontal -> if x1 < x2 then (y1, x1 + i) else (y2, x2 + i)
+          | `Vertical -> if y1 < y2 then (y1 + i, x1) else (y2 + i, x2))
     in
     if List.for_all (fun (y, x) -> grid.(y).(x) = Empty) coords then begin
       List.iter (fun (y, x) -> grid.(y).(x) <- Ship) coords;
@@ -104,3 +104,15 @@ let num_ships_in_grid grid =
     done
   in
   !exist
+
+let yes_no state =
+  match state with
+  | "Yes" -> Some true
+  | "yes" -> Some true
+  | "Y" -> Some true
+  | "y" -> Some true
+  | "No" -> Some false
+  | "no" -> Some false
+  | "N" -> Some false
+  | "n" -> Some false
+  | _ -> None
