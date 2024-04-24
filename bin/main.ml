@@ -1,4 +1,64 @@
 open Battleship
+open Battleship
+open Bogue
+module W = Widget
+module L = Layout
+
+let w = 70
+let h = 70
+let blue = Style.(of_bg (opaque_bg Draw.(find_color "red")))
+
+let red =
+  Style.(
+    of_bg (opaque_bg Draw.(find_color "red"))
+    |> with_border (mk_border (mk_line ~color:(255, 50, 140, 100) ~width:2 ())))
+
+let gray = Style.(of_bg (opaque_bg Draw.(find_color "gray")))
+let green = Style.(of_bg (opaque_bg Draw.(find_color "green")))
+
+let bg =
+  Style.(
+    of_bg (opaque_bg Draw.(find_color "silver"))
+    |> with_border (mk_border (mk_line ~color:(89, 89, 89, 58) ~width:2 ())))
+
+let lbg =
+  Style.(
+    of_bg (opaque_bg Draw.(find_color "gainsboro"))
+    |> with_border (mk_border (mk_line ~color:(183, 183, 183, 58) ~width:2 ())))
+
+let make_style = function
+  | Empty -> Style.empty
+  | Ship -> blue
+  | Hit -> green
+  | Miss -> red
+
+let make_widgets (a : cell array array) =
+  let make_row n =
+    Array.init n (fun _ -> W.box ~w ~h ~style:(make_style Empty) ())
+  in
+  Array.init (Array.length a) (fun _ -> make_row (Array.length a))
+
+let make_layout ws =
+  ws
+  |> Array.mapi (fun i row ->
+         row
+         |> Array.mapi (fun j box ->
+                let background =
+                  if (i + j) mod 2 = 0 then L.style_bg bg else L.style_bg lbg
+                in
+                L.resident ~background box))
+  |> Array.to_list
+  |> List.map (fun row -> L.flat ~margins:0 (Array.to_list row))
+  |> L.tower ~margins:0
+
+let get_state box =
+  let s = Box.get_style (W.get_box box) in
+  if s = gray then Empty
+  else if s = blue then Ship
+  else if s = green then Hit
+  else if s = red then Miss
+  else failwith "Unrecognized state style"
+
 
 let print_grid grid show_ships =
   let grid_size = Array.length grid in
@@ -124,11 +184,20 @@ let game_loop grid1 grid2 =
         else print_endline "Game over! All ships have been hit."
   in
   place_ships 0
-
-let () =
+  
+let init =
   Random.self_init ();
   let grid_size = 10 in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   random_placement grid2 5 4;
-  game_loop grid1 grid2
+  (* game_loop grid1 grid2; *)
+  let ws1 = make_widgets grid1 in
+  let ws2 = make_widgets grid2 in
+  let board = L.tower [ make_layout ws1; make_layout ws2 ] in
+  let bog = Bogue.of_layout board in
+  Bogue.run bog
+
+let () =
+  init;
+  Bogue.quit ()
