@@ -46,6 +46,15 @@ let ai_guess grid =
   let x = Random.int grid_size and y = Random.int grid_size in
   shoot grid (y, x)
 
+let rec quit_game ask =
+  if ask = "Quit" then print_endline "Are you sure you want to quit?";
+  match read_line () with
+  | input ->
+      let quit = yes_no input in
+      if quit = Some true then failwith "Game Exited"
+      else if quit = Some false then ignore
+      else quit_game "Quit"
+
 let game_loop grid1 grid2 =
   let max_ships = 5 in
   let rec place_ships count =

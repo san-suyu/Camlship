@@ -64,3 +64,15 @@ let grid_to_list grid = Array.to_list (Array.map Array.to_list grid)
 
 (* retrieves detailed information about each ship placed *)
 let get_ships_info () = !ship_details
+
+let yes_no state =
+  match state with
+  | "Yes" -> Some true
+  | "yes" -> Some true
+  | "Y" -> Some true
+  | "y" -> Some true
+  | "No" -> Some false
+  | "no" -> Some false
+  | "N" -> Some false
+  | "n" -> Some false
+  | _ -> None
