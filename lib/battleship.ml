@@ -30,8 +30,8 @@ let place_ship grid (y1, x1) (y2, x2) =
     let coords =
       List.init length (fun i ->
           match dir with
-          | `Horizontal -> (y1, x1 + i)
-          | `Vertical -> (y1 + i, x1))
+          | `Horizontal -> if x1 < x2 then (y1, x1 + i) else (y2, x2 + i)
+          | `Vertical -> if y1 < y2 then (y1 + i, x1) else (y2 + i, x2))
     in
     if List.for_all (fun (y, x) -> grid.(y).(x) = Empty) coords then begin
       List.iter (fun (y, x) -> grid.(y).(x) <- Ship) coords;
