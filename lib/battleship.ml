@@ -1,119 +1,100 @@
 type cell =
   | Empty
-  | Ship
-  | Hit
+  | Ship of int
+  | Hit of int
   | Miss
 
 type grid = cell array array
 
+exception InvalidPlacement
+exception InvalidInput
+
 let create_grid size = Array.make_matrix size size Empty
+
+let print_grid grid show_ships title =
+  Printf.printf "%s\n" title;
+  let grid_size = Array.length grid in
+  Printf.printf "  ";
+  for x = 1 to grid_size do
+    Printf.printf "%2d " x
+  done;
+  print_newline ();
+  for y = 0 to grid_size - 1 do
+    Printf.printf "%c  " (Char.chr (y + Char.code 'A'));
+    for x = 0 to grid_size - 1 do
+      let cell_repr =
+        match grid.(y).(x) with
+        | Empty -> '.'
+        | Ship _ -> if show_ships then '#' else '.'
+        | Hit _ -> 'X'
+        | Miss -> 'O'
+      in
+      Printf.printf "%c  " cell_repr
+    done;
+    print_newline ()
+  done;
+  print_newline ()
+
 let char_to_index c = Char.code (Char.uppercase_ascii c) - Char.code 'A'
 
-let ship_check grid (y1, x1) (y2, x2) =
-  let check = ref true in
-  let () =
-    if y1 = y2 then
-      for index = x1 to x2 do
-        if grid.(y1).(index) = Ship then check := false else ()
-      done
-    else
-      for index = y1 to y2 do
-        if grid.(index).(x1) = Ship then check := false else ()
-      done
-  in
-  !check
+let is_valid_placement (y1, x1) (y2, x2) =
+  let horizontal = x1 = x2 && abs (y2 - y1) > 0 in
+  let vertical = y1 = y2 && abs (x2 - x1) > 0 in
+  horizontal || vertical
 
-let is_valid_placement grid (y1, x1) (y2, x2) =
-  let size = Array.length grid in
-  let size_check = x1 <= size && x2 <= size && y1 <= size && y2 <= size in
-  size_check
-  && ship_check grid (y1, x1) (y2, x2)
-  && ((x1 = x2 && abs (y2 - y1) >= 0)
-     || (size_check && y1 = y2 && abs (x2 - x1) >= 0))
+(* hashtable to track ship health *)
+let ship_health = Hashtbl.create 10
 
-(* Define a type to hold ship details *)
-type ship_detail = {
-  start : int * int;
-  end_ : int * int;
-  length : int;
-}
-
-(* List to track details of each ship *)
-let ship_details : ship_detail list ref = ref []
-
-(* Modified place_ship function to track ship placements *)
-let place_ship grid (y1, x1) (y2, x2) =
-  if is_valid_placement grid (y1, x1) (y2, x2) then
+let place_ship grid ship_id (y1, x1) (y2, x2) =
+  if not (is_valid_placement (y1, x1) (y2, x2)) then
+    (* false showing unsuccessful placement due to invalid positioning *)
+    false
+  else
     let dir = if y1 = y2 then `Horizontal else `Vertical in
     let length = max (abs (y2 - y1)) (abs (x2 - x1)) + 1 in
-    let coords =
-      List.init length (fun i ->
-          match dir with
-          | `Horizontal -> if x1 < x2 then (y1, x1 + i) else (y2, x2 + i)
-          | `Vertical -> if y1 < y2 then (y1 + i, x1) else (y2 + i, x2))
+    let generate_coords =
+      match dir with
+      | `Horizontal -> List.init length (fun i -> (y1, x1 + i))
+      | `Vertical -> List.init length (fun i -> (y1 + i, x1))
     in
-    if List.for_all (fun (y, x) -> grid.(y).(x) = Empty) coords then begin
-      List.iter (fun (y, x) -> grid.(y).(x) <- Ship) coords;
-      (* Track each ship placement *)
-      ship_details :=
-        { start = (y1, x1); end_ = (y2, x2); length } :: !ship_details;
+    if List.for_all (fun (y, x) -> grid.(y).(x) = Empty) generate_coords then begin
+      List.iter (fun (y, x) -> grid.(y).(x) <- Ship ship_id) generate_coords;
+      (* initialize ship health based on size *)
+      Hashtbl.add ship_health ship_id length;
+      (* true = successful placement *)
       true
     end
-    else false
-  else false
+    else (* false if the placement overlaps with another ship *)
+      false
 
-let random_placement grid num_ships max_ship_size =
-  Random.self_init ();
-  let rec place_random_ship n =
-    if n > 0 then
-      let x = Random.int 10
-      and y = Random.int 10
-      and horizontal = Random.bool ()
-      and size = Random.int max_ship_size + 1 in
-      let x2 = if horizontal then x + size - 1 else x
-      and y2 = if horizontal then y else y + size - 1 in
-      if x2 < 10 && y2 < 10 && place_ship grid (y, x) (y2, x2) then
-        place_random_ship (n - 1)
-      else place_random_ship n
+let shoot grid (y, x) =
+  match grid.(y).(x) with
+  | Ship id ->
+      grid.(y).(x) <- Hit id;
+      let health = Hashtbl.find ship_health id - 1 in
+      Hashtbl.replace ship_health id health;
+      if health = 0 then Printf.sprintf "You sunk a ship!" else "Hit!"
+  | Empty ->
+      grid.(y).(x) <- Miss;
+      "Miss!"
+  | Hit _ | Miss -> "Already guessed this position!"
+
+let ai_guess grid =
+  let grid_size = Array.length grid in
+  let rec guess () =
+    let x = Random.int grid_size and y = Random.int grid_size in
+    match grid.(y).(x) with
+    | Hit _ | Miss -> guess ()
+    | _ -> shoot grid (y, x)
   in
-  place_random_ship num_ships
+  guess ()
 
-(* converts grid to arraylist*)
-let grid_to_list grid = Array.to_list (Array.map Array.to_list grid)
-
-(* retrieves detailed information about each ship placed *)
-let get_ships_info () = !ship_details
-
-let ships_in_grid grid =
-  let exist = ref false in
-  let () =
-    for x = 0 to Array.length grid - 1 do
-      for y = 0 to Array.length grid - 1 do
-        if grid.(y).(x) = Ship then exist := true else ()
-      done
-    done
-  in
-  !exist
-
-let num_ships_in_grid grid =
-  let exist = ref 0 in
-  let () =
-    for x = 0 to Array.length grid - 1 do
-      for y = 0 to Array.length grid - 1 do
-        if grid.(y).(x) = Ship then exist := !exist + 1 else ()
-      done
-    done
-  in
-  !exist
-
-let yes_no state =
-  match state with
-  | "Yes" -> Some true
-  | "yes" -> Some true
-  | "Y" -> Some true
-  | "y" -> Some true
-  | "No" -> Some false
-  | "no" -> Some false
-  | "N" -> Some false
-  | "n" -> Some false
-  | _ -> None
+let check_game_over grid =
+  Array.for_all
+    (fun row ->
+      Array.for_all
+        (function
+          | Ship _ -> false
+          | _ -> true)
+        row)
+    grid
