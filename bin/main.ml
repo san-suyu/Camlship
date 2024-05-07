@@ -1,208 +1,119 @@
 open Battleship
-open Battleship
-open Bogue
-module W = Widget
-module L = Layout
 
-let w = 70
-let h = 70
-let blue = Style.(of_bg (opaque_bg Draw.(find_color "red")))
+(* Checks if coordinates are within the acceptable range of the grid *)
+let validate_coordinates y x size =
+  let valid_y = y >= 0 && y < size in
+  let valid_x = x >= 0 && x < size in
+  valid_y && valid_x
 
-let red =
-  Style.(
-    of_bg (opaque_bg Draw.(find_color "red"))
-    |> with_border (mk_border (mk_line ~color:(255, 50, 140, 100) ~width:2 ())))
-
-let gray = Style.(of_bg (opaque_bg Draw.(find_color "gray")))
-let green = Style.(of_bg (opaque_bg Draw.(find_color "green")))
-
-let bg =
-  Style.(
-    of_bg (opaque_bg Draw.(find_color "silver"))
-    |> with_border (mk_border (mk_line ~color:(89, 89, 89, 58) ~width:2 ())))
-
-let lbg =
-  Style.(
-    of_bg (opaque_bg Draw.(find_color "gainsboro"))
-    |> with_border (mk_border (mk_line ~color:(183, 183, 183, 58) ~width:2 ())))
-
-let make_style = function
-  | Empty -> Style.empty
-  | Ship -> blue
-  | Hit -> green
-  | Miss -> red
-
-let make_widgets (a : cell array array) =
-  let make_row n =
-    Array.init n (fun _ -> W.box ~w ~h ~style:(make_style Empty) ())
+(* Initializes random placement of ships with specified sizes *)
+let random_place_ships grid =
+  let ship_sizes = [ 5; 4; 3; 3; 2 ] in
+  let try_place_ship size =
+    let direction = Random.bool () in
+    let dir = if direction then `Horizontal else `Vertical in
+    let decrement = if dir = `Horizontal then size else 0 in
+    let x = Random.int (10 - decrement) in
+    let decrement_y = if dir = `Vertical then size else 0 in
+    let y = Random.int (10 - decrement_y) in
+    let x2 = if dir = `Horizontal then x + size - 1 else x in
+    let y2 = if dir = `Vertical then y + size - 1 else y in
+    let valid_start = validate_coordinates x y 10 in
+    let valid_end = validate_coordinates x2 y2 10 in
+    if valid_start && valid_end then place_ship grid (size + 10) (y, x) (y2, x2)
+    else false
   in
-  Array.init (Array.length a) (fun _ -> make_row (Array.length a))
-
-let make_layout ws =
-  ws
-  |> Array.mapi (fun i row ->
-         row
-         |> Array.mapi (fun j box ->
-                let background =
-                  if (i + j) mod 2 = 0 then L.style_bg bg else L.style_bg lbg
-                in
-                L.resident ~background box))
-  |> Array.to_list
-  |> List.map (fun row -> L.flat ~margins:0 (Array.to_list row))
-  |> L.tower ~margins:0
-
-let get_state box =
-  let s = Box.get_style (W.get_box box) in
-  if s = gray then Empty
-  else if s = blue then Ship
-  else if s = green then Hit
-  else if s = red then Miss
-  else failwith "Unrecognized state style"
-
-let print_grid grid show_ships =
-  let grid_size = Array.length grid in
-  Printf.printf "   ";
-  for x = 0 to grid_size - 1 do
-    Printf.printf "%2d " x
-  done;
-  print_newline ();
-  for y = 0 to grid_size - 1 do
-    Printf.printf "%c  " (Char.chr (y + Char.code 'A'));
-    for x = 0 to grid_size - 1 do
-      Printf.printf "%c  "
-        (match grid.(y).(x) with
-        | Empty -> '.'
-        | Ship -> if show_ships then '#' else '.'
-        | Hit -> 'X'
-        | Miss -> 'O')
-    done;
-    print_newline ()
-  done;
-  print_newline ()
-
-let check_game_over grid =
-  Array.for_all
-    (fun row ->
-      Array.for_all
-        (function
-          | Ship -> false
-          | _ -> true)
-        row)
-    grid
-
-let shoot grid (y, x) =
-  match grid.(y).(x) with
-  | Ship ->
-      grid.(y).(x) <- Hit;
-      "Hit!"
-  | Empty ->
-      grid.(y).(x) <- Miss;
-      "Miss!"
-  | Hit | Miss -> "Already guessed this position!"
-
-let ai_guess grid =
-  let grid_size = Array.length grid in
-  let x = Random.int grid_size and y = Random.int grid_size in
-  shoot grid (y, x)
-
-let rec quit_game ask =
-  if ask = "Quit" || ask = "quit" then (
-    print_endline "Do you want to quit the game?";
-    match read_line () with
-    | input ->
-        let quit = yes_no input in
-        if quit = Some true then failwith "Game Exited"
-        else if quit = Some false then (
-          print_endline "Continuing...";
-          Some false)
-        else quit_game "Quit")
-  else None
+  List.iter
+    (fun size ->
+      while not (try_place_ship size) do
+        ()
+      done)
+    ship_sizes
 
 let game_loop grid1 grid2 =
-  let max_ships = 5 in
-  let rec place_ships count =
-    if count < max_ships then begin
-      print_endline "Opponent's grid (hidden):";
-      print_grid grid2 false;
-      print_endline "Your grid:";
-      print_grid grid1 true;
-      print_endline "Enter coordinates to place your ship (Y1 X1 Y2 X2):";
-      match read_line () with
-      | exception End_of_file -> ()
-      | input -> (
-          if quit_game input == Some false then place_ships count
-          else
-            let coords =
-              Scanf.sscanf input "%c %d %c %d" (fun y1 x1 y2 x2 ->
-                  ((char_to_index y1, x1), (char_to_index y2, x2)))
-            in
-            match place_ship grid1 (fst coords) (snd coords) with
-            | true ->
-                let () = print_endline "Ship placed successfully!" in
-                place_ships (count + 1)
-            | false ->
-                let () =
-                  print_endline
-                    "Invalid placement. Ships must be placed in a straight \
-                     line on the grid and must not overlap with other ships."
-                in
-                place_ships count
-            | exception Invalid_argument _ -> (
-                match place_ship grid1 (snd coords) (fst coords) with
-                | true ->
-                    let () = print_endline "Ship placed successfully!" in
-                    place_ships (count + 1)
-                | false ->
-                    let () =
-                      print_endline
-                        "Invalid placement. Ships must be placed in a straight \
-                         line on the grid and must not overlap with other \
-                         ships."
-                    in
-                    place_ships count))
-    end
-    else shoot_phase ()
-  and shoot_phase () =
-    print_endline "Opponent's grid (guess phase):";
-    print_grid grid2 false;
-    print_endline "Your grid:";
-    print_grid grid1 true;
-    print_endline "Enter coordinates to shoot at (Y X):";
-    match read_line () with
-    | exception End_of_file -> ()
-    | input ->
-        if quit_game input == Some false then shoot_phase ()
-        else
-          let coords =
-            Scanf.sscanf input "%c %d" (fun y x -> (char_to_index y, x))
-          in
-          let result = shoot grid2 coords in
-          Printf.printf "%s\n" result;
-          if result != "Already guessed this position!" then (
-            let ai_result = ai_guess grid1 in
-            Printf.printf "AI's turn: %s\n" ai_result;
-            if (not (check_game_over grid1)) && not (check_game_over grid2) then
-              shoot_phase ()
-            else if check_game_over grid1 then
-              print_endline "Game over! You win!"
-            else print_endline "Game over! You lose.")
-          else shoot_phase ()
-  in
-  place_ships 0
-
-let init =
-  Random.self_init ();
   let grid_size = 10 in
-  let grid1 = create_grid grid_size in
-  let grid2 = create_grid grid_size in
-  random_placement grid2 5 4;
-  (*game_loop grid1 grid2*)
-  let ws1 = make_widgets grid1 in
-  let ws2 = make_widgets grid2 in
-  let board = L.tower [ make_layout ws1; make_layout ws2 ] in
-  let bog = Bogue.of_layout board in
-  Bogue.run bog
+  random_place_ships grid2;
+  let rec place_ships count max_ships =
+    if count < max_ships then begin
+      Printf.printf "Place your %d. ship (Format: Y1X1 Y2X2, e.g., A1 A2): \n"
+        (count + 1);
+      print_grid grid2 false "Opponent's Grid";
+      print_grid grid1 true "Player's Grid";
+      try
+        let input = read_line () in
+        let inputs = Str.split (Str.regexp "[ \t]+") input in
+        match inputs with
+        | [ start; finish ] -> begin
+            let start_y_char = start.[0] in
+            let start_x_substr = String.sub start 1 (String.length start - 1) in
+            let y1 = char_to_index start_y_char in
+            let x1 = int_of_string start_x_substr - 1 in
+            let finish_y_char = finish.[0] in
+            let finish_x_substr =
+              String.sub finish 1 (String.length finish - 1)
+            in
+            let y2 = char_to_index finish_y_char in
+            let x2 = int_of_string finish_x_substr - 1 in
+            if
+              validate_coordinates y1 x1 grid_size
+              && validate_coordinates y2 x2 grid_size
+            then
+              if place_ship grid1 count (y1, x1) (y2, x2) then begin
+                Printf.printf "Ship placed successfully.\n";
+                print_grid grid1 true "Player's Grid";
+                place_ships (count + 1) max_ships
+              end
+              else begin
+                Printf.printf "Invalid placement, try again.\n";
+                place_ships count max_ships
+              end
+            else begin
+              Printf.printf "Coordinates are out of bounds, try again.\n";
+              place_ships count max_ships
+            end
+          end
+        | _ -> raise (Failure "Invalid input format")
+      with
+      | Scanf.Scan_failure _ | Failure _ ->
+          Printf.printf "Please check your input format and try again.\n";
+          place_ships count max_ships
+      | InvalidPlacement ->
+          Printf.printf "Invalid placement, try again.\n";
+          place_ships count max_ships
+    end
+    else begin
+      print_grid grid2 false "Opponent's Grid";
+      Printf.printf "Transitioning to shoot phase.\n";
+      shoot_phase ()
+    end
+  and shoot_phase () =
+    Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3): \n";
+    try
+      let input = read_line () in
+      let y_char = input.[0] in
+      let x_substr = String.sub input 1 (String.length input - 1) in
+      let y = char_to_index y_char in
+      let x = int_of_string x_substr - 1 in
+      if validate_coordinates y x grid_size then (
+        let result = shoot grid2 (y, x) in
+        Printf.printf "Result: %s\n" result;
+        print_grid grid2 false "Opponent's Grid";
+        print_grid grid1 true "Player's Grid";
+        if not (check_game_over grid1 || check_game_over grid2) then
+          let _ = ai_guess grid1 in
+          shoot_phase ()
+        else Printf.printf "Game over! All ships have been hit.\n")
+      else Printf.printf "Coordinates are out of bounds, try again.\n";
+      shoot_phase ()
+    with Scanf.Scan_failure _ | Failure _ ->
+      Printf.printf "Invalid input format, try again.\n";
+      shoot_phase ()
+  in
+  place_ships 0 5
 
 let () =
-  init;
-  Bogue.quit ()
+  Random.self_init ();
+  let grid1 = create_grid 10 in
+  let grid2 = create_grid 10 in
+  Printf.printf "Starting Battleship game\n";
+  game_loop grid1 grid2
