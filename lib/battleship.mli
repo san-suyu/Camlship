@@ -16,3 +16,4 @@ val shoot : grid -> int * int -> string
 val ai_guess : grid -> string
 val check_game_over : grid -> bool
 val char_to_index : char -> int
+val validate_coordinates : int -> int -> int -> bool
