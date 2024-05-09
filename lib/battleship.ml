@@ -35,6 +35,7 @@ let print_grid grid show_ships title =
   done;
   print_newline ()
 
+let validate_coordinates x y size = x >= 0 && x < size && y >= 0 && y < size
 let char_to_index c = Char.code (Char.uppercase_ascii c) - Char.code 'A'
 
 let is_valid_placement (y1, x1) (y2, x2) =
@@ -42,13 +43,14 @@ let is_valid_placement (y1, x1) (y2, x2) =
   let vertical = y1 = y2 && abs (x2 - x1) > 0 in
   horizontal || vertical
 
-(* hashtable to track ship health *)
 let ship_health = Hashtbl.create 10
 
 let place_ship grid ship_id (y1, x1) (y2, x2) =
-  if not (is_valid_placement (y1, x1) (y2, x2)) then
-    (* false showing unsuccessful placement due to invalid positioning *)
-    false
+  if
+    (not (validate_coordinates x1 y1 (Array.length grid)))
+    || not (validate_coordinates x2 y2 (Array.length grid))
+  then raise InvalidPlacement
+  else if not (is_valid_placement (y1, x1) (y2, x2)) then raise InvalidPlacement
   else
     let dir = if y1 = y2 then `Horizontal else `Vertical in
     let length = max (abs (y2 - y1)) (abs (x2 - x1)) + 1 in
@@ -59,13 +61,10 @@ let place_ship grid ship_id (y1, x1) (y2, x2) =
     in
     if List.for_all (fun (y, x) -> grid.(y).(x) = Empty) generate_coords then begin
       List.iter (fun (y, x) -> grid.(y).(x) <- Ship ship_id) generate_coords;
-      (* initialize ship health based on size *)
       Hashtbl.add ship_health ship_id length;
-      (* true = successful placement *)
       true
     end
-    else (* false if the placement overlaps with another ship *)
-      false
+    else raise InvalidPlacement
 
 let shoot grid (y, x) =
   match grid.(y).(x) with
