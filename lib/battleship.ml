@@ -9,6 +9,11 @@ type grid = cell array array
 exception InvalidPlacement
 exception InvalidInput
 
+type ai_state =
+  | Searching
+  | Targeting of (int * int) * (int * int) list
+
+let ai_memory : ai_state ref = ref Searching
 let create_grid size = Array.make_matrix size size Empty
 
 let print_grid grid show_ships title =
@@ -78,15 +83,46 @@ let shoot grid (y, x) =
       "Miss!"
   | Hit _ | Miss -> "Already guessed this position!"
 
-let ai_guess grid =
+let next_targets (x, y) grid =
+  [ (x + 1, y); (x - 1, y); (x, y + 1); (x, y - 1) ]
+  |> List.filter (fun (nx, ny) ->
+         validate_coordinates nx ny (Array.length grid))
+  |> List.filter (fun (nx, ny) ->
+         match grid.(ny).(nx) with
+         | Empty | Ship _ -> true
+         | Hit _ | Miss -> false)
+
+let rec ai_guess grid =
   let grid_size = Array.length grid in
-  let rec guess () =
-    let x = Random.int grid_size and y = Random.int grid_size in
-    match grid.(y).(x) with
-    | Hit _ | Miss -> guess ()
-    | _ -> shoot grid (y, x)
-  in
-  guess ()
+  match !ai_memory with
+  | Searching ->
+      let x = Random.int grid_size and y = Random.int grid_size in
+      begin
+        match grid.(y).(x) with
+        | Hit _ | Miss -> ai_guess grid
+        | _ ->
+            let result = shoot grid (y, x) in
+            if result = "Hit!" then
+              ai_memory := Targeting ((x, y), next_targets (x, y) grid);
+            result
+      end
+  | Targeting ((_, _), []) ->
+      ai_memory := Searching;
+      ai_guess grid
+  | Targeting ((last_hit_x, last_hit_y), targets) -> (
+      match targets with
+      | (target_x, target_y) :: rest ->
+          let result = shoot grid (target_y, target_x) in
+          if result = "Hit!" then
+            ai_memory :=
+              Targeting
+                ( (target_x, target_y),
+                  next_targets (target_x, target_y) grid @ rest )
+          else ai_memory := Targeting ((last_hit_x, last_hit_y), rest);
+          result
+      | [] ->
+          ai_memory := Searching;
+          ai_guess grid)
 
 let check_game_over grid =
   Array.for_all
