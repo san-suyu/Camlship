@@ -102,7 +102,7 @@ let game_loop grid1 grid2 =
         if not (check_game_over grid1 || check_game_over grid2) then
           let _ = ai_guess grid1 in
           shoot_phase ()
-        else Printf.printf "Game over! All ships have been hit.\n")
+        else Printf.printf "Game over! All ships have been sunk.\n")
       else Printf.printf "Coordinates are out of bounds, try again.\n";
       shoot_phase ()
     with Scanf.Scan_failure _ | Failure _ ->
