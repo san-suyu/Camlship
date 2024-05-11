@@ -19,6 +19,7 @@ type ai_mode =
 
 let ai_mode : ai_mode ref = ref Easy
 let set_ai_mode mode = ai_mode := mode
+let get_ai_mode () = !ai_mode
 let ai_memory : ai_state ref = ref Searching
 let create_grid size = Array.make_matrix size size Empty
 
