@@ -24,3 +24,4 @@ type ai_mode =
   | Hard
 
 val set_ai_mode : ai_mode -> unit
+val get_ai_mode : unit -> ai_mode
