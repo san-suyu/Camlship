@@ -119,6 +119,63 @@ let test_ship_placement_boundary _ =
   assert_bool "Ship should place on grid boundary"
     (place_ship grid 12 (9, 7) (9, 9))
 
+let test_ship_placement_at_edges _ =
+  let grid = create_grid 10 in
+  assert_bool "Placement at top edge should succeed"
+    (place_ship grid 13 (0, 0) (0, 3));
+  assert_bool "Placement at bottom edge should succeed"
+    (place_ship grid 14 (9, 6) (9, 9));
+  assert_bool "Placement at left edge should succeed"
+    (place_ship grid 15 (2, 0) (5, 0));
+  assert_bool "Placement at right edge should succeed"
+    (place_ship grid 16 (2, 9) (5, 9))
+
+let test_ships_touching_at_corners _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 17 (0, 0) (0, 3));
+  ignore (place_ship grid 18 (1, 4) (4, 4));
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 19 (0, 4) (0, 5)))
+
+let test_ship_wrapping _ =
+  let grid = create_grid 10 in
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 20 (0, 8) (0, 11)))
+
+let test_full_grid_sunk _ =
+  let grid = create_grid 10 in
+  for i = 0 to 9 do
+    for j = 0 to 9 do
+      ignore (place_ship grid ((i * 10) + j + 21) (i, j) (i, j))
+    done
+  done;
+  List.iter
+    (fun i ->
+      List.iter
+        (fun j -> ignore (shoot grid (i, j)))
+        [ 0; 1; 2; 3; 4; 5; 6; 7; 8; 9 ])
+    [ 0; 1; 2; 3; 4; 5; 6; 7; 8; 9 ];
+  assert_bool "All cells sunk should be game over" (check_game_over grid)
+
+let test_ai_efficiency_easy _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 220 (1, 1) (1, 4));
+  set_ai_mode Easy;
+  let results = List.init 50 (fun _ -> ai_guess grid) in
+  let hits = List.filter (fun x -> x = "Hit!") results in
+  assert_bool "Easy AI should have random efficiency"
+    (List.length hits > 0 && List.length hits <= 50)
+
+let test_ai_efficiency_hard _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 221 (5, 5) (5, 8));
+  set_ai_mode Hard;
+  let hits = ref 0 in
+  for _ = 1 to 50 do
+    if ai_guess grid = "Hit!" then incr hits
+  done;
+  assert_bool "Hard AI should be more efficient than Easy AI" (!hits > 10)
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -144,6 +201,12 @@ let suite =
          "test_ship_placement_in_empty_grid"
          >:: test_ship_placement_in_empty_grid;
          "test_ship_placement_boundary" >:: test_ship_placement_boundary;
+         "test_ship_placement_at_edges" >:: test_ship_placement_at_edges;
+         "test_ships_touching_at_corners" >:: test_ships_touching_at_corners;
+         "test_ship_wrapping" >:: test_ship_wrapping;
+         "test_full_grid_sunk" >:: test_full_grid_sunk;
+         "test_ai_efficiency_easy" >:: test_ai_efficiency_easy;
+         "test_ai_efficiency_hard" >:: test_ai_efficiency_hard;
        ]
 
 let () = run_test_tt_main suite
