@@ -1,43 +1,27 @@
 open Battleship
 
-(* Checks if coordinates are within the acceptable range of the grid *)
-let validate_coordinates y x size =
-  let valid_y = y >= 0 && y < size in
-  let valid_x = x >= 0 && x < size in
-  valid_y && valid_x
+let select_ai_mode () =
+  Printf.printf "Select AI mode: 1 for Easy, 2 for Hard:\n";
+  match read_line () with
+  | "1" ->
+      set_ai_mode Easy;
+      Printf.printf "Easy mode selected.\n"
+  | "2" ->
+      set_ai_mode Hard;
+      Printf.printf "Hard mode selected.\n"
+  | _ ->
+      Printf.printf "Invalid selection. Defaulting to Easy mode.\n";
+      set_ai_mode Easy
 
-(* Initializes random placement of ships with specified sizes *)
-let random_place_ships grid =
-  let ship_sizes = [ 5; 4; 3; 3; 2 ] in
-  let try_place_ship size =
-    let direction = Random.bool () in
-    let dir = if direction then `Horizontal else `Vertical in
-    let decrement = if dir = `Horizontal then size else 0 in
-    let x = Random.int (10 - decrement) in
-    let decrement_y = if dir = `Vertical then size else 0 in
-    let y = Random.int (10 - decrement_y) in
-    let x2 = if dir = `Horizontal then x + size - 1 else x in
-    let y2 = if dir = `Vertical then y + size - 1 else y in
-    let valid_start = validate_coordinates x y 10 in
-    let valid_end = validate_coordinates x2 y2 10 in
-    if valid_start && valid_end then place_ship grid (size + 10) (y, x) (y2, x2)
-    else false
-  in
-  List.iter
-    (fun size ->
-      while not (try_place_ship size) do
-        ()
-      done)
-    ship_sizes
-
-let game_loop grid1 grid2 =
-  let grid_size = 10 in
+let rec game_loop grid_size =
+  let grid1 = create_grid grid_size in
+  let grid2 = create_grid grid_size in
   random_place_ships grid2;
+
   let rec place_ships count max_ships =
     if count < max_ships then begin
-      Printf.printf "Place your %d. ship (Format: Y1X1 Y2X2, e.g., A1 A2): \n"
+      Printf.printf "Place your %d. ship (Format: Y1X1 Y2X2, e.g., A1 A2):\n"
         (count + 1);
-      print_grid grid2 false "Opponent's Grid";
       print_grid grid1 true "Player's Grid";
       try
         let input = read_line () in
@@ -60,7 +44,8 @@ let game_loop grid1 grid2 =
             then
               if place_ship grid1 count (y1, x1) (y2, x2) then begin
                 Printf.printf "Ship placed successfully.\n";
-                print_grid grid1 true "Player's Grid";
+                if count + 1 = max_ships then
+                  print_grid grid1 true "Final Player's Grid";
                 place_ships (count + 1) max_ships
               end
               else begin
@@ -82,12 +67,10 @@ let game_loop grid1 grid2 =
           place_ships count max_ships
     end
     else begin
-      print_grid grid2 false "Opponent's Grid";
-      Printf.printf "Transitioning to shoot phase.\n";
       shoot_phase ()
     end
   and shoot_phase () =
-    Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3): \n";
+    Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3):\n";
     try
       let input = read_line () in
       let y_char = input.[0] in
@@ -98,22 +81,55 @@ let game_loop grid1 grid2 =
         let result = shoot grid2 (y, x) in
         Printf.printf "Result: %s\n" result;
         print_grid grid2 false "Opponent's Grid";
-        print_grid grid1 true "Player's Grid";
-        if not (check_game_over grid1 || check_game_over grid2) then
-          let _ = ai_guess grid1 in
-          shoot_phase ()
-        else Printf.printf "Game over! All ships have been sunk.\n")
+        if not (check_game_over grid1 || check_game_over grid2) then (
+          let ai_result = ai_guess grid1 in
+          Printf.printf "AI's move: %s\n" ai_result;
+          print_grid grid1 true "Player's Grid";
+          shoot_phase ())
+        else if check_game_over grid1 then game_over ()
+        else next_level ())
       else Printf.printf "Coordinates are out of bounds, try again.\n";
       shoot_phase ()
     with Scanf.Scan_failure _ | Failure _ ->
       Printf.printf "Invalid input format, try again.\n";
       shoot_phase ()
   in
+
   place_ships 0 5
+
+and next_level () =
+  Printf.printf "Do you want to progress to level 2? (y/n):\n";
+  match read_line () with
+  | "y" ->
+      Printf.printf "Starting level 2...\n";
+      game_loop 12
+  | "n" -> main_menu ()
+  | _ ->
+      Printf.printf "Invalid input. Please type 'y' or 'n'.\n";
+      next_level ()
+
+and game_over () =
+  Printf.printf "Game over! You have lost.\n";
+  Printf.printf "Would you like to return to the main menu (1) or quit (2)?\n";
+  match read_line () with
+  | "1" -> main_menu ()
+  | "2" -> exit 0
+  | _ ->
+      Printf.printf "Invalid option. Please choose 1 or 2.\n";
+      game_over ()
+
+and main_menu () =
+  Printf.printf "1. Start Game\n2. Quit\nChoose an option:\n";
+  match read_line () with
+  | "1" ->
+      select_ai_mode ();
+      Printf.printf "Starting level 1...\n";
+      game_loop 10
+  | "2" -> exit 0
+  | _ ->
+      Printf.printf "Invalid option. Please choose 1 or 2.\n";
+      main_menu ()
 
 let () =
   Random.self_init ();
-  let grid1 = create_grid 10 in
-  let grid2 = create_grid 10 in
-  Printf.printf "Starting Battleship game\n";
-  game_loop grid1 grid2
+  main_menu ()
