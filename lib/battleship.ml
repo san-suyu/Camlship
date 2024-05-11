@@ -13,6 +13,12 @@ type ai_state =
   | Searching
   | Targeting of (int * int) * (int * int) list
 
+type ai_mode =
+  | Easy
+  | Hard
+
+let ai_mode : ai_mode ref = ref Easy
+let set_ai_mode mode = ai_mode := mode
 let ai_memory : ai_state ref = ref Searching
 let create_grid size = Array.make_matrix size size Empty
 
@@ -77,7 +83,7 @@ let shoot grid (y, x) =
       grid.(y).(x) <- Hit id;
       let health = Hashtbl.find ship_health id - 1 in
       Hashtbl.replace ship_health id health;
-      if health = 0 then Printf.sprintf "You sunk a ship!" else "Hit!"
+      if health = 0 then "You sunk a ship!" else "Hit!"
   | Empty ->
       grid.(y).(x) <- Miss;
       "Miss!"
@@ -93,9 +99,17 @@ let next_targets (x, y) grid =
          | Hit _ | Miss -> false)
 
 let rec ai_guess grid =
-  let grid_size = Array.length grid in
-  match !ai_memory with
-  | Searching ->
+  match (!ai_mode, !ai_memory) with
+  | Easy, _ ->
+      let grid_size = Array.length grid in
+      let x = Random.int grid_size and y = Random.int grid_size in
+      begin
+        match grid.(y).(x) with
+        | Hit _ | Miss -> ai_guess grid
+        | _ -> shoot grid (y, x)
+      end
+  | Hard, Searching ->
+      let grid_size = Array.length grid in
       let x = Random.int grid_size and y = Random.int grid_size in
       begin
         match grid.(y).(x) with
@@ -106,10 +120,10 @@ let rec ai_guess grid =
               ai_memory := Targeting ((x, y), next_targets (x, y) grid);
             result
       end
-  | Targeting ((_, _), []) ->
+  | Hard, Targeting ((_, _), []) ->
       ai_memory := Searching;
       ai_guess grid
-  | Targeting ((last_hit_x, last_hit_y), targets) -> (
+  | Hard, Targeting ((last_hit_x, last_hit_y), targets) -> (
       match targets with
       | (target_x, target_y) :: rest ->
           let result = shoot grid (target_y, target_x) in
@@ -123,6 +137,22 @@ let rec ai_guess grid =
       | [] ->
           ai_memory := Searching;
           ai_guess grid)
+
+let random_place_ships grid =
+  let ship_sizes = [ 5; 4; 3; 3; 2 ] in
+  let grid_size = Array.length grid in
+  List.iteri
+    (fun ship_id size ->
+      let placed = ref false in
+      while not !placed do
+        let dir = Random.bool () in
+        let x = Random.int (if dir then grid_size - size else grid_size) in
+        let y = Random.int (if dir then grid_size else grid_size - size) in
+        let x2, y2 = if dir then (x + size - 1, y) else (x, y + size - 1) in
+        try placed := place_ship grid ship_id (y, x) (y2, x2)
+        with InvalidPlacement -> ()
+      done)
+    ship_sizes
 
 let check_game_over grid =
   Array.for_all
