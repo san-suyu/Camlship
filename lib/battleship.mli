@@ -17,3 +17,10 @@ val ai_guess : grid -> string
 val check_game_over : grid -> bool
 val char_to_index : char -> int
 val validate_coordinates : int -> int -> int -> bool
+val random_place_ships : grid -> unit
+
+type ai_mode =
+  | Easy
+  | Hard
+
+val set_ai_mode : ai_mode -> unit
