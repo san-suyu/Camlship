@@ -20,37 +20,44 @@ let rec game_loop grid_size =
   random_place_ships grid2;
 
   let print_powerups () =
+    Printf.printf "You currently have %i gold to spend\n" !gold;
     Printf.printf
-      "Choose which Powerup you wish to use\n Enter 1 for: Row bomb\n";
+      "Choose which Powerup you wish to use\n Enter 1 for: Row bomb -> 100g\n";
     read_line ()
   in
   let rec powerups () =
     let choice = print_powerups () in
     match choice with
-    | "1" -> (
-        Printf.printf
-          "Row bomb will bomb an entire row, as if you shot every cell in that \
-           row. Please enter a row to bomb (ex: A) or enter 'back' to go back \
-           to the previous menu\n";
-        let row_choice = read_line () in
-        if row_choice = "back" then powerups ()
+    | "1" ->
+        if !gold > 100 then (
+          Printf.printf
+            "Row bomb will bomb an entire row, as if you shot every cell in \
+             that row. Please enter a row to bomb (ex: A) or enter 'back' to \
+             go back to the previous menu\n";
+          let row_choice = read_line () in
+          if row_choice = "back" then powerups ()
+          else
+            try
+              let y = char_to_index row_choice.[0] in
+              if List.mem y !bombed_rows then begin
+                Printf.printf "Already bombed that row!\n";
+                powerups ()
+              end
+              else begin
+                bombed_rows := y :: !bombed_rows;
+                for i = 0 to grid_size - 1 do
+                  let result = shoot grid2 (y, i) in
+                  Printf.printf "%s \n" result
+                done
+              end
+            with _ ->
+              Printf.printf "Invalid row input, try again\n";
+              powerups ())
         else
-          try
-            let y = char_to_index row_choice.[0] in
-            if List.mem y !bombed_rows then begin
-              Printf.printf "Already bombed that row!\n";
-              powerups ()
-            end
-            else begin
-              bombed_rows := y :: !bombed_rows;
-              for i = 0 to grid_size - 1 do
-                let result = shoot grid2 (y, i) in
-                Printf.printf "%s \n" result
-              done
-            end
-          with _ ->
-            Printf.printf "Invalid row input, try again";
-            powerups ())
+          Printf.printf
+            "Not enough gold to spend!\n\
+            \ select another powerup or use 'back' to go back\n";
+        powerups ()
     | "back" -> Printf.printf "going back\n"
     | _ ->
         Printf.printf "invalid powerup selection\n";
@@ -109,6 +116,7 @@ let rec game_loop grid_size =
       shoot_phase ()
     end
   and shoot_phase () =
+    Printf.printf "You currently have %i gold\n" !gold;
     Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3):\n";
     Printf.printf "or enter 'Powerup' to use a powerup:";
     try
@@ -132,6 +140,7 @@ let rec game_loop grid_size =
         if validate_coordinates y x grid_size then (
           let result = shoot grid2 (y, x) in
           Printf.printf "Result: %s\n" result;
+          if result = "Hit!" then gold := !gold + 50;
           print_grid grid2 false "Opponent's Grid";
           if not (check_game_over grid1 || check_game_over grid2) then (
             let ai_result = ai_guess grid1 in
