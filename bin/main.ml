@@ -15,6 +15,7 @@ let select_ai_mode () =
 
 let rec game_loop grid_size =
   let bombed_rows = ref [] in
+  let bombed_columns = ref [] in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   random_place_ships grid2;
@@ -22,14 +23,17 @@ let rec game_loop grid_size =
   let print_powerups () =
     Printf.printf "You currently have %i gold to spend\n" !gold;
     Printf.printf
-      "Choose which Powerup you wish to use\n Enter 1 for: Row bomb -> 100g\n";
-    read_line ()
+      "Choose which Powerup you wish to use\n\
+      \ Enter 1 for: Row bomb -> 100g\n\
+      \ Enter 2 for: Column bomb -> 100g\n\
+      \ Enter Back for: back to game\n";
+    String.trim (read_line ())
   in
   let rec powerups () =
     let choice = print_powerups () in
     match choice with
     | "1" ->
-        if !gold > 100 then (
+        if !gold >= 100 then (
           Printf.printf
             "Row bomb will bomb an entire row, as if you shot every cell in \
              that row. Please enter a row to bomb (ex: A) or enter 'back' to \
@@ -48,16 +52,50 @@ let rec game_loop grid_size =
                 for i = 0 to grid_size - 1 do
                   let result = shoot grid2 (y, i) in
                   Printf.printf "%s \n" result
-                done
+                done;
+                gold := !gold - 100
               end
             with _ ->
               Printf.printf "Invalid row input, try again\n";
               powerups ())
-        else
+        else begin
           Printf.printf
             "Not enough gold to spend!\n\
             \ select another powerup or use 'back' to go back\n";
-        powerups ()
+          powerups ()
+        end
+    | "2" ->
+        if !gold >= 100 then (
+          Printf.printf
+            "Column bomb will bomb an entire column, as if you shot every cell \
+             in that column. Please enter a column to bomb (ex: 2) or enter \
+             'back' to go back to the previous menu\n";
+          let column_choice = read_line () in
+          if column_choice = "back" then powerups ()
+          else
+            try
+              let x = int_of_string column_choice in
+              if List.mem x !bombed_columns then begin
+                Printf.printf "Already bombed that column!\n";
+                powerups ()
+              end
+              else begin
+                bombed_columns := x :: !bombed_columns;
+                for i = 0 to grid_size - 1 do
+                  let result = shoot grid2 (i, x) in
+                  Printf.printf "%s \n" result
+                done;
+                gold := !gold - 100
+              end
+            with _ ->
+              Printf.printf "Invalid column input, try again\n";
+              powerups ())
+        else begin
+          Printf.printf
+            "Not enough gold to spend!\n\
+            \ select another powerup or use 'back' to go back\n";
+          powerups ()
+        end
     | "back" -> Printf.printf "going back\n"
     | _ ->
         Printf.printf "invalid powerup selection\n";

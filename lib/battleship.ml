@@ -22,7 +22,8 @@ let set_ai_mode mode = ai_mode := mode
 let get_ai_mode () = !ai_mode
 let ai_memory : ai_state ref = ref Searching
 let create_grid size = Array.make_matrix size size Empty
-let gold = ref 0
+let gold = ref 100
+
 let print_grid grid show_ships title =
   Printf.printf "%s\n" title;
   let grid_size = Array.length grid in
