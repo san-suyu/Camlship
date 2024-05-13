@@ -14,9 +14,48 @@ let select_ai_mode () =
       set_ai_mode Easy
 
 let rec game_loop grid_size =
+  let bombed_rows = ref [] in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   random_place_ships grid2;
+
+  let print_powerups () =
+    Printf.printf
+      "Choose which Powerup you wish to use\n Enter 1 for: Row bomb\n";
+    read_line ()
+  in
+  let rec powerups () =
+    let choice = print_powerups () in
+    match choice with
+    | "1" -> (
+        Printf.printf
+          "Row bomb will bomb an entire row, as if you shot every cell in that \
+           row. Please enter a row to bomb (ex: A) or enter 'back' to go back \
+           to the previous menu\n";
+        let row_choice = read_line () in
+        if row_choice = "back" then powerups ()
+        else
+          try
+            let y = char_to_index row_choice.[0] in
+            if List.mem y !bombed_rows then begin
+              Printf.printf "Already bombed that row!\n";
+              powerups ()
+            end
+            else begin
+              bombed_rows := y :: !bombed_rows;
+              for i = 0 to grid_size - 1 do
+                let result = shoot grid2 (y, i) in
+                Printf.printf "%s \n" result
+              done
+            end
+          with _ ->
+            Printf.printf "Invalid row input, try again";
+            powerups ())
+    | "back" -> Printf.printf "going back\n"
+    | _ ->
+        Printf.printf "invalid powerup selection\n";
+        powerups ()
+  in
 
   let rec place_ships count max_ships =
     if count < max_ships then begin
@@ -71,15 +110,11 @@ let rec game_loop grid_size =
     end
   and shoot_phase () =
     Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3):\n";
+    Printf.printf "or enter 'Powerup' to use a powerup:";
     try
       let input = read_line () in
-      let y_char = input.[0] in
-      let x_substr = String.sub input 1 (String.length input - 1) in
-      let y = char_to_index y_char in
-      let x = int_of_string x_substr - 1 in
-      if validate_coordinates y x grid_size then (
-        let result = shoot grid2 (y, x) in
-        Printf.printf "Result: %s\n" result;
+      if String.trim input = "powerup" || input = "p" then begin
+        powerups ();
         print_grid grid2 false "Opponent's Grid";
         if not (check_game_over grid1 || check_game_over grid2) then (
           let ai_result = ai_guess grid1 in
@@ -87,15 +122,32 @@ let rec game_loop grid_size =
           print_grid grid1 true "Player's Grid";
           shoot_phase ())
         else if check_game_over grid1 then game_over ()
-        else next_level ())
-      else Printf.printf "Coordinates are out of bounds, try again.\n";
-      shoot_phase ()
+        else next_level ()
+      end
+      else
+        let y_char = input.[0] in
+        let x_substr = String.sub input 1 (String.length input - 1) in
+        let y = char_to_index y_char in
+        let x = int_of_string x_substr - 1 in
+        if validate_coordinates y x grid_size then (
+          let result = shoot grid2 (y, x) in
+          Printf.printf "Result: %s\n" result;
+          print_grid grid2 false "Opponent's Grid";
+          if not (check_game_over grid1 || check_game_over grid2) then (
+            let ai_result = ai_guess grid1 in
+            Printf.printf "AI's move: %s\n" ai_result;
+            print_grid grid1 true "Player's Grid";
+            shoot_phase ())
+          else if check_game_over grid1 then game_over ()
+          else next_level ())
+        else Printf.printf "Coordinates are out of bounds, try again.\n";
+        shoot_phase ()
     with Scanf.Scan_failure _ | Failure _ ->
       Printf.printf "Invalid input format, try again.\n";
       shoot_phase ()
   in
 
-  place_ships 0 5
+  place_ships 0 1
 
 and next_level () =
   Printf.printf "Do you want to progress to level 2? (y/n):\n";
