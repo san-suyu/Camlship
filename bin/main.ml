@@ -28,7 +28,8 @@ let rec game_loop grid_size =
       \ Enter 1 for: Row bomb -> 100g\n\
       \ Enter 2 for: Column bomb -> 100g\n\
       \ Enter 3 for: Square bomb -> 100g\n\
-      \ Enter Back for: back to game\n";
+      \ Enter 4 for: Airstrike -> 50+g\n\
+      \       Enter Back for: back to game\n";
     String.trim (read_line ())
   in
   let rec powerups () =
@@ -142,6 +143,27 @@ let rec game_loop grid_size =
             \ select another powerup or use 'back' to go back\n";
           powerups ()
         end
+    | "4" ->
+        if !gold >= 50 then (
+          Printf.printf
+            "Airstrike will randomly shoot cells on the enemy board. Each 50 \
+             gold you are willing to pay will shoot 2 cells. Please enter an \
+             the amount of gold you are willing to spend (ex: 100) or enter \
+             'back' to go back to the previous menu\n";
+          let (current_gold : int option) =
+            int_of_string_opt (string_of_int !gold)
+          in
+          let airstrike_choice = read_line () in
+          if airstrike_choice = "back" then powerups ()
+          else
+            let gold_input = int_of_string_opt airstrike_choice in
+            if gold_input = None then
+              let () = Printf.printf "Invalid input, try again\n" in
+              powerups ()
+            else if gold_input > current_gold then
+              let () = print_endline "You do not have enough gold!\n" in
+              powerups ()
+            else airstrike grid2 (!gold / 50))
     | "back" -> Printf.printf "going back\n"
     | _ ->
         Printf.printf "invalid powerup selection\n";

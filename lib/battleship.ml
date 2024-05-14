@@ -141,6 +141,22 @@ let rec ai_guess grid =
           ai_memory := Searching;
           ai_guess grid)
 
+let rec airstrike grid shots =
+  let grid_size = Array.length grid in
+  let x = Random.int grid_size and y = Random.int grid_size in
+  try
+    let () = gold := !gold - (shots * 50) in
+    if shots != 0 then
+      match grid.(y).(x) with
+      | Hit _ | Miss -> airstrike grid shots
+      | _ ->
+          let result = shoot grid (y, x) in
+          if result = "Hit!" then
+            let () = gold := !gold + 50 in
+            let () = print_endline result in
+            airstrike grid (shots - 1)
+  with _ -> print_endline "Not enough gold"
+
 let random_place_ships grid =
   let ship_sizes = [ 5; 4; 3; 3; 2 ] in
   let grid_size = Array.length grid in
