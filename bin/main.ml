@@ -187,7 +187,7 @@ let rec game_loop grid_size =
             else
               let () = gold := !gold - 25 in
               match grid.(y).(x) with
-              | Hit _ -> airstrike grid shots
+              | Hit _ | Miss -> airstrike grid shots
               | _ ->
                   let result = shoot grid (y, x) in
                   if result = "Hit!" then

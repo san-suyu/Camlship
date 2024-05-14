@@ -173,3 +173,24 @@ let check_game_over grid =
             | _ -> true)
           row)
       grid
+
+let count_cell_type grid cell =
+  let count = ref 0 in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid - 1 do
+      match grid.(y).(x) with
+      | cell -> count := !count + 1
+    done
+  done;
+  !count
+
+let count_hit_cells grid =
+  let count = ref 0 in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid - 1 do
+      match grid.(y).(x) with
+      | Hit _ -> count := !count + 1
+      | _ -> ()
+    done
+  done;
+  !count

@@ -26,3 +26,5 @@ type ai_mode =
 
 val set_ai_mode : ai_mode -> unit
 val get_ai_mode : unit -> ai_mode
+val count_cell_type : grid -> cell -> int
+val count_hit_cells : grid -> int

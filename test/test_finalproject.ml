@@ -272,11 +272,38 @@ let square_bomb row col =
   !final
 
 let test_square_bomb _ =
-  let _ = place_ship powerup_grid2 1 (1, 0) (4, 0) in
+  let _ = place_ship powerup_grid3 1 (1, 0) (4, 0) in
   assert_bool "Bombing a fresh square" ("You sunk a ship!" = square_bomb 'A' "1");
   assert_bool "Gold after bombing a ship length 1" (!gold = 50);
   assert_bool "Bombing previously bombed square"
     ("Already bombed that square!" = square_bomb 'A' "1")
+
+let rec airstrike grid shots =
+  let final = ref "" in
+  let grid_size = Array.length grid in
+  let x = Random.int grid_size and y = Random.int grid_size in
+  if shots = 0 then print_string ""
+  else
+    let () = gold := !gold - 25 in
+    match grid.(y).(x) with
+    | Hit _ | Miss -> airstrike grid shots
+    | _ ->
+        let result = shoot grid (y, x) in
+        if result = "Hit!" then
+          let () = gold := !gold + 50 in
+          let () = final := result in
+          airstrike grid (shots - 1)
+        else
+          let () = final := result in
+          airstrike grid (shots - 1)
+
+let powerup_grid4 = create_grid 10
+
+let test_airstrike _ =
+  let _ = place_ship powerup_grid4 1 (1, 0) (4, 0) in
+  let _ = airstrike powerup_grid4 4 in
+  assert_bool "Commencing airstrike for 100 gold"
+    (4 = count_hit_cells powerup_grid4 + count_cell_type powerup_grid4 Miss)
 
 let suite =
   "Battleship Test Suite"
@@ -312,6 +339,7 @@ let suite =
          "test_bomb_row" >:: test_bomb_row;
          "test_bomb_column" >:: test_bomb_column;
          "test_square_bomb" >:: test_square_bomb;
+         "test_airstrike" >:: test_airstrike;
        ]
 
 let () = run_test_tt_main suite
