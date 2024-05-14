@@ -302,8 +302,19 @@ let powerup_grid4 = create_grid 10
 let test_airstrike _ =
   let _ = place_ship powerup_grid4 1 (1, 0) (4, 0) in
   let _ = airstrike powerup_grid4 4 in
-  assert_bool "Commencing airstrike for 100 gold"
-    (4 = count_hit_cells powerup_grid4 + count_cell_type powerup_grid4 Miss)
+  assert_equal 4
+    (count_hit_cells powerup_grid4 + count_cell_type powerup_grid4 Miss)
+
+let count_grid = create_grid 10
+let _ = place_ship count_grid 1 (1, 0) (1, 9)
+let _ = shoot count_grid (0, 0)
+let _ = shoot count_grid (2, 0)
+let _ = shoot count_grid (3, 0)
+
+let test_cell_count _ =
+  assert_bool "Counting Empty cells" (90 = count_cell_type count_grid Empty);
+  assert_bool "Counting Miss cells" (1 = count_cell_type count_grid Miss);
+  assert_bool "Counting Hit cells" (2 = count_hit_cells count_grid)
 
 let suite =
   "Battleship Test Suite"
@@ -340,6 +351,7 @@ let suite =
          "test_bomb_column" >:: test_bomb_column;
          "test_square_bomb" >:: test_square_bomb;
          "test_airstrike" >:: test_airstrike;
+         "test_cell_count" >:: test_cell_count;
        ]
 
 let () = run_test_tt_main suite
