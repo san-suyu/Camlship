@@ -56,7 +56,9 @@ let rec game_loop grid_size =
       if player = 1 then bombed_columns1 else bombed_columns2
     in
     let bombed_rows = if player = 1 then bombed_rows1 else bombed_rows2 in
-    let bombed_squares = if player = 1 then bombed_squares1 else bombed_squares2 in
+    let bombed_squares =
+      if player = 1 then bombed_squares1 else bombed_squares2
+    in
     let choice = print_powerups () in
     match choice with
     | "1" ->
@@ -145,11 +147,11 @@ let rec game_loop grid_size =
               let x = int_of_string x_substr - 1 in
               if not (validate_bomb y x grid_size) then begin
                 Printf.printf "Invalid selection!\n";
-                powerups player()
+                powerups player ()
               end
               else if List.mem (y, x) !bombed_squares then begin
                 Printf.printf "Already bombed that square!\n";
-                powerups player()
+                powerups player ()
               end
               else begin
                 bombed_squares := (y, x) :: !bombed_squares;
@@ -164,35 +166,63 @@ let rec game_loop grid_size =
               end
             with _ ->
               Printf.printf "Invalid input, try again\n";
-              powerups player())
+              powerups player ())
         else begin
           Printf.printf
             "Not enough gold to spend!\n\
             \ select another powerup or use 'back' to go back\n";
-          powerups player()
+          powerups player ()
         end
     | "4" ->
-        if !gold >= 50 then (
+        if !gold >= 25 then (
           Printf.printf
             "Airstrike will randomly shoot cells on the enemy board. Each 50 \
              gold you are willing to pay will shoot 2 cells. Please enter an \
              the amount of gold you are willing to spend (ex: 100) or enter \
              'back' to go back to the previous menu\n";
+          let rec airstrike grid shots =
+            let grid_size = Array.length grid in
+            let x = Random.int grid_size and y = Random.int grid_size in
+            if shots = 0 then print_string ""
+            else
+              let () = gold := !gold - 25 in
+              match grid.(y).(x) with
+              | Hit _ -> airstrike grid shots
+              | _ ->
+                  let result = shoot grid (y, x) in
+                  if result = "Hit!" then
+                    let () = gold := !gold + 50 in
+                    let () = Printf.printf "%s \n" result in
+                    airstrike grid (shots - 1)
+                  else
+                    let () = Printf.printf "%s \n" result in
+                    airstrike grid (shots - 1)
+          in
           let (current_gold : int option) =
             int_of_string_opt (string_of_int !gold)
           in
           let airstrike_choice = read_line () in
-          if airstrike_choice = "back" then powerups player()
+          if airstrike_choice = "back" then powerups player ()
           else
             let gold_input = int_of_string_opt airstrike_choice in
             if gold_input = None then
               let () = Printf.printf "Invalid input, try again\n" in
-              powerups player()
+              powerups player ()
             else if gold_input > current_gold then
               let () = print_endline "You do not have enough gold!\n" in
               powerups player ()
-            else airstrike grid2 (!gold / 50))
-    | "back" -> Printf.printf "going back\n"
+            else
+              airstrike grid2
+                ((int_of_string airstrike_choice
+                 - Int.rem (int_of_string airstrike_choice) 25)
+                / 25))
+        else begin
+          Printf.printf
+            "Not enough gold to spend!\n\
+            \ select another powerup or use 'back' to go back\n";
+          powerups player ()
+        end
+    | "back" -> Printf.printf "Going back\n"
     | "Quit" -> exit 0
     | _ ->
         ANSITerminal.printf [ ANSITerminal.red ] "invalid powerup selection\n";
