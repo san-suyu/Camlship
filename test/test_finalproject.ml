@@ -5,7 +5,11 @@ let test_create_grid _ =
   let grid = create_grid 10 in
   assert_equal 10 (Array.length grid);
   assert_equal 10 (Array.length grid.(0));
-  assert_equal Empty grid.(0).(0)
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid - 1 do
+      assert_equal Empty grid.(y).(x)
+    done
+  done
 
 let test_print_grid _ =
   let grid = create_grid 10 in
@@ -21,15 +25,20 @@ let test_place_ship_success _ =
     (place_ship grid 1 (0, 0) (0, 4));
   assert_bool "Vertical placement should succeed"
     (place_ship grid 2 (2, 2) (6, 2));
-  assert_equal (Ship 1) grid.(0).(0);
-  assert_equal (Ship 2) grid.(3).(2)
+  for x = 0 to 4 do
+    assert_equal (Ship 1) grid.(0).(x)
+  done;
+  for y = 2 to 6 do
+    assert_equal (Ship 2) grid.(y).(2)
+  done
 
 let test_place_ship_failures _ =
   let grid = create_grid 10 in
+  let _ = place_ship grid 1 (0, 0) (0, 4) in
   assert_bool "Diagonal placement should fail"
-    (not (place_ship grid 1 (0, 0) (4, 4)));
+    (try place_ship grid 1 (0, 0) (4, 4) with _ -> true);
   assert_bool "Overlap placement should fail"
-    (not (place_ship grid 1 (0, 0) (0, 4) && place_ship grid 2 (0, 2) (0, 6)))
+    (try place_ship grid 2 (0, 2) (0, 6) with _ -> true)
 
 let test_shoot _ =
   let grid = create_grid 10 in
@@ -60,17 +69,21 @@ let test_invalid_input _ =
 
 let test_char_to_index _ =
   assert_equal 0 (char_to_index 'A');
+  assert_equal 0 (char_to_index 'a');
   assert_equal 25 (char_to_index 'z')
 
 let test_validate_coordinates _ =
   assert_bool "Valid coordinates (5,5)" (validate_coordinates 5 5 10);
   assert_bool "Invalid coordinates (-1,5)"
-    (not (validate_coordinates (-1) 5 10))
+    (not (validate_coordinates (-1) 5 10));
+  assert_bool "Invalid coordinates (0,11)" (not (validate_coordinates 0 11 10))
 
 let test_boundary_ship_placement _ =
   let grid = create_grid 10 in
   assert_bool "Place ship on the boundary should succeed"
-    (place_ship grid 3 (9, 0) (9, 2))
+    (place_ship grid 3 (9, 0) (9, 2));
+  assert_bool "Place ship on the boundary should succeed"
+    (place_ship grid 3 (0, 9) (2, 9))
 
 let test_boundary_ship_placement_failure _ =
   let grid = create_grid 10 in

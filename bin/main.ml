@@ -176,8 +176,8 @@ let rec game_loop grid_size =
     | "4" ->
         if !gold >= 25 then (
           Printf.printf
-            "Airstrike will randomly shoot cells on the enemy board. Each 50 \
-             gold you are willing to pay will shoot 2 cells. Please enter an \
+            "Airstrike will randomly shoot cells on the enemy board. Each 25 \
+             gold you are willing to pay will shoot 1 cell. Please enter an \
              the amount of gold you are willing to spend (ex: 100) or enter \
              'back' to go back to the previous menu\n";
           let rec airstrike grid shots =
@@ -255,16 +255,25 @@ let rec game_loop grid_size =
                 validate_coordinates y1 x1 grid_size
                 && validate_coordinates y2 x2 grid_size
               then
-                if place_ship grid1 count (y1, x1) (y2, x2) then begin
-                  Printf.printf "Ship placed successfully.\n";
-                  if count + 1 = max_ships then
-                    print_grid grid1 true "Final Player's Grid";
-                  place_ships (count + 1) max_ships
-                end
-                else begin
-                  Printf.printf "Invalid placement, try again.\n";
-                  place_ships count max_ships
-                end
+                match place_ship grid1 count (y1, x1) (y2, x2) with
+                | true ->
+                    let () = Printf.printf "Ship placed successfully.\n" in
+                    let () = print_grid grid1 true "Final Player's Grid" in
+                    place_ships (count + 1) max_ships
+                | false ->
+                    let () = Printf.printf "Invalid placement, try again.\n" in
+                    place_ships count max_ships
+                | exception Invalid_argument _ -> (
+                    match place_ship grid1 count (y2, x2) (y1, x1) with
+                    | true ->
+                        let () = Printf.printf "Ship placed successfully.\n" in
+                        let () = print_grid grid1 true "Final Player's Grid" in
+                        place_ships (count + 1) max_ships
+                    | false ->
+                        let () =
+                          Printf.printf "Invalid placement, try again.\n"
+                        in
+                        place_ships count max_ships)
               else begin
                 Printf.printf "Coordinates are out of bounds, try again.\n";
                 place_ships count max_ships

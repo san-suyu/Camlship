@@ -157,11 +157,19 @@ let random_place_ships grid =
     ship_sizes
 
 let check_game_over grid =
-  Array.for_all
-    (fun row ->
-      Array.for_all
-        (function
-          | Ship _ -> false
-          | _ -> true)
-        row)
-    grid
+  let all_empty = ref true in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid - 1 do
+      if grid.(y).(x) != Empty then all_empty := false else ()
+    done
+  done;
+  if !all_empty then false
+  else
+    Array.for_all
+      (fun row ->
+        Array.for_all
+          (function
+            | Ship _ -> false
+            | _ -> true)
+          row)
+      grid
