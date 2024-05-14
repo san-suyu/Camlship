@@ -114,7 +114,7 @@ let rec game_loop grid_size =
               let x_substr = String.sub choice 1 (String.length choice - 1) in
               let y = char_to_index y_char in
               let x = int_of_string x_substr - 1 in
-              if not (validate_coordinates y x grid_size) then begin
+              if not (validate_bomb y x grid_size) then begin
                 Printf.printf "Invalid selection!\n";
                 powerups ()
               end
@@ -123,10 +123,10 @@ let rec game_loop grid_size =
                 powerups ()
               end
               else begin
-                bombed_rows := y :: !bombed_rows;
+                bombed_squares := (y, x) :: !bombed_squares;
                 for i = 0 to 2 do
                   for j = 0 to 2 do
-                    let result = shoot grid2 (y + i, j) in
+                    let result = shoot grid2 (y + i, x + j) in
                     if result = "Hit!" then gold := !gold + 50;
                     Printf.printf "%s \n" result
                   done
