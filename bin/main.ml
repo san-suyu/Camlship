@@ -16,6 +16,7 @@ let select_ai_mode () =
 let rec game_loop grid_size =
   let bombed_rows = ref [] in
   let bombed_columns = ref [] in
+  let bombed_squares = ref [] in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   random_place_ships grid2;
@@ -26,6 +27,7 @@ let rec game_loop grid_size =
       "Choose which Powerup you wish to use\n\
       \ Enter 1 for: Row bomb -> 100g\n\
       \ Enter 2 for: Column bomb -> 100g\n\
+      \ Enter 3 for: Square bomb -> 100g\n\
       \ Enter Back for: back to game\n";
     String.trim (read_line ())
   in
@@ -51,6 +53,7 @@ let rec game_loop grid_size =
                 bombed_rows := y :: !bombed_rows;
                 for i = 0 to grid_size - 1 do
                   let result = shoot grid2 (y, i) in
+                  if result = "Hit!" then gold := !gold + 50;
                   Printf.printf "%s \n" result
                 done;
                 gold := !gold - 100
@@ -83,12 +86,55 @@ let rec game_loop grid_size =
                 bombed_columns := x :: !bombed_columns;
                 for i = 0 to grid_size - 1 do
                   let result = shoot grid2 (i, x) in
+                  if result = "Hit!" then gold := !gold + 50;
                   Printf.printf "%s \n" result
                 done;
                 gold := !gold - 100
               end
             with _ ->
               Printf.printf "Invalid column input, try again\n";
+              powerups ())
+        else begin
+          Printf.printf
+            "Not enough gold to spend!\n\
+            \ select another powerup or use 'back' to go back\n";
+          powerups ()
+        end
+    | "3" ->
+        if !gold >= 100 then (
+          Printf.printf
+            "Square bomb will bomb a 3x3 area. Please enter the top left \
+             corner of the area you wish to bomb (ex: A1) or enter 'back' to \
+             go back to the previous menu\n";
+          let choice = read_line () in
+          if choice = "back" then powerups ()
+          else
+            try
+              let y_char = choice.[0] in
+              let x_substr = String.sub choice 1 (String.length choice - 1) in
+              let y = char_to_index y_char in
+              let x = int_of_string x_substr - 1 in
+              if not (validate_coordinates y x grid_size) then begin
+                Printf.printf "Invalid selection!\n";
+                powerups ()
+              end
+              else if List.mem (y, x) !bombed_squares then begin
+                Printf.printf "Already bombed that square!\n";
+                powerups ()
+              end
+              else begin
+                bombed_rows := y :: !bombed_rows;
+                for i = 0 to 2 do
+                  for j = 0 to 2 do
+                    let result = shoot grid2 (y + i, j) in
+                    if result = "Hit!" then gold := !gold + 50;
+                    Printf.printf "%s \n" result
+                  done
+                done;
+                gold := !gold - 100
+              end
+            with _ ->
+              Printf.printf "Invalid input, try again\n";
               powerups ())
         else begin
           Printf.printf
@@ -156,7 +202,7 @@ let rec game_loop grid_size =
   and shoot_phase () =
     Printf.printf "You currently have %i gold\n" !gold;
     Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3):\n";
-    Printf.printf "or enter 'Powerup' to use a powerup:";
+    Printf.printf "or enter 'powerup' to use a powerup:";
     try
       let input = read_line () in
       if String.trim input = "powerup" || input = "p" then begin
@@ -178,7 +224,8 @@ let rec game_loop grid_size =
         if validate_coordinates y x grid_size then (
           let result = shoot grid2 (y, x) in
           Printf.printf "Result: %s\n" result;
-          if result = "Hit!" then gold := !gold + 50;
+          if result = "Hit!" || result = "You sunk a ship!" then
+            gold := !gold + 50;
           print_grid grid2 false "Opponent's Grid";
           if not (check_game_over grid1 || check_game_over grid2) then (
             let ai_result = ai_guess grid1 in
@@ -197,7 +244,7 @@ let rec game_loop grid_size =
   place_ships 0 1
 
 and next_level () =
-  Printf.printf "Do you want to progress to level 2? (y/n):\n";
+  Printf.printf "You won!\n Do you want to progress to level 2? (y/n):\n";
   match read_line () with
   | "y" ->
       Printf.printf "Starting level 2...\n";

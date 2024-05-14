@@ -49,6 +49,7 @@ let print_grid grid show_ships title =
   print_newline ()
 
 let validate_coordinates x y size = x >= 0 && x < size && y >= 0 && y < size
+let validate_bomb x y size = x >= 0 && x < size - 3 && y >= 0 && y < size - 3
 let char_to_index c = Char.code (Char.uppercase_ascii c) - Char.code 'A'
 
 let is_valid_placement (y1, x1) (y2, x2) =
