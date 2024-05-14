@@ -30,6 +30,8 @@ let rec game_loop grid_size =
   let bombed_columns1 = ref [] in
   let bombed_rows2 = ref [] in
   let bombed_columns2 = ref [] in
+  let bombed_squares1 = ref [] in
+  let bombed_squares2 = ref [] in
   let grid1 = create_grid grid_size in
   let grid2 = create_grid grid_size in
   let grid3 = create_grid grid_size in
@@ -43,7 +45,7 @@ let rec game_loop grid_size =
       \ Enter 1 for: Row bomb -> 100g\n\
       \ Enter 2 for: Column bomb -> 100g\n\
       \ Enter 3 for: Square bomb -> 100g\n\
-      \ Enter 4 for: Airstrike -> 50+g\n\
+      \ Enter 4 for: Airstrike -> 50g\n\
       \       Enter Back for: back to game\n";
     String.trim (read_line ())
   in
@@ -54,7 +56,7 @@ let rec game_loop grid_size =
       if player = 1 then bombed_columns1 else bombed_columns2
     in
     let bombed_rows = if player = 1 then bombed_rows1 else bombed_rows2 in
-
+    let bombed_squares = if player = 1 then bombed_squares1 else bombed_squares2 in
     let choice = print_powerups () in
     match choice with
     | "1" ->
@@ -131,7 +133,7 @@ let rec game_loop grid_size =
              corner of the area you wish to bomb (ex: A1) or enter 'back' to \
              go back to the previous menu\n";
           let square_choice = read_line () in
-          if square_choice = "back" then powerups ()
+          if square_choice = "back" then powerups player ()
           else if square_choice = "Quit" then exit 0
           else
             try
@@ -143,11 +145,11 @@ let rec game_loop grid_size =
               let x = int_of_string x_substr - 1 in
               if not (validate_bomb y x grid_size) then begin
                 Printf.printf "Invalid selection!\n";
-                powerups ()
+                powerups player()
               end
               else if List.mem (y, x) !bombed_squares then begin
                 Printf.printf "Already bombed that square!\n";
-                powerups ()
+                powerups player()
               end
               else begin
                 bombed_squares := (y, x) :: !bombed_squares;
@@ -162,12 +164,12 @@ let rec game_loop grid_size =
               end
             with _ ->
               Printf.printf "Invalid input, try again\n";
-              powerups ())
+              powerups player())
         else begin
           Printf.printf
             "Not enough gold to spend!\n\
             \ select another powerup or use 'back' to go back\n";
-          powerups ()
+          powerups player()
         end
     | "4" ->
         if !gold >= 50 then (
@@ -180,15 +182,15 @@ let rec game_loop grid_size =
             int_of_string_opt (string_of_int !gold)
           in
           let airstrike_choice = read_line () in
-          if airstrike_choice = "back" then powerups ()
+          if airstrike_choice = "back" then powerups player()
           else
             let gold_input = int_of_string_opt airstrike_choice in
             if gold_input = None then
               let () = Printf.printf "Invalid input, try again\n" in
-              powerups ()
+              powerups player()
             else if gold_input > current_gold then
               let () = print_endline "You do not have enough gold!\n" in
-              powerups ()
+              powerups player ()
             else airstrike grid2 (!gold / 50))
     | "back" -> Printf.printf "going back\n"
     | "Quit" -> exit 0
