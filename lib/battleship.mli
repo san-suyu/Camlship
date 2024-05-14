@@ -9,7 +9,6 @@ type grid = cell array array
 exception InvalidPlacement
 exception InvalidInput
 
-val gold : int ref
 val create_grid : int -> grid
 val print_grid : grid -> bool -> string -> unit
 val place_ship : grid -> int -> int * int -> int * int -> bool

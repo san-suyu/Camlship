@@ -1,4 +1,4 @@
 (library
  (name battleship)
  (modules battleship)
- (libraries bogue))
+ (libraries ANSITerminal))
