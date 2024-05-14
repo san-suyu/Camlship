@@ -42,7 +42,9 @@ let rec game_loop grid_size =
       "Choose which Powerup you wish to use\n\
       \ Enter 1 for: Row bomb -> 100g\n\
       \ Enter 2 for: Column bomb -> 100g\n\
-      \ Enter Back for: back to game\n";
+      \ Enter 3 for: Square bomb -> 100g\n\
+      \ Enter 4 for: Airstrike -> 50+g\n\
+      \       Enter Back for: back to game\n";
     String.trim (read_line ())
   in
   let rec powerups player () =
@@ -63,6 +65,7 @@ let rec game_loop grid_size =
              go back to the previous menu\n";
           let row_choice = read_line () in
           if row_choice = "back" then powerups player ()
+          else if row_choice = "Quit" then exit 0
           else
             try
               let y = char_to_index row_choice.[0] in
@@ -74,6 +77,7 @@ let rec game_loop grid_size =
                 bombed_rows := y :: !bombed_rows;
                 for i = 0 to grid_size - 1 do
                   let result = shoot grid (y, i) in
+                  if result = "Hit!" then gold := !gold + 50;
                   Printf.printf "%s \n" result
                 done;
                 gold := !gold - 100
@@ -95,6 +99,7 @@ let rec game_loop grid_size =
              'back' to go back to the previous menu\n";
           let column_choice = read_line () in
           if column_choice = "back" then powerups player ()
+          else if column_choice = "Quit" then exit 0
           else
             try
               let x = int_of_string column_choice in
@@ -119,7 +124,74 @@ let rec game_loop grid_size =
             \ select another powerup or use 'back' to go back\n";
           powerups player ()
         end
+    | "3" ->
+        if !gold >= 100 then (
+          Printf.printf
+            "Square bomb will bomb a 3x3 area. Please enter the top left \
+             corner of the area you wish to bomb (ex: A1) or enter 'back' to \
+             go back to the previous menu\n";
+          let square_choice = read_line () in
+          if square_choice = "back" then powerups ()
+          else if square_choice = "Quit" then exit 0
+          else
+            try
+              let y_char = square_choice.[0] in
+              let x_substr =
+                String.sub square_choice 1 (String.length square_choice - 1)
+              in
+              let y = char_to_index y_char in
+              let x = int_of_string x_substr - 1 in
+              if not (validate_bomb y x grid_size) then begin
+                Printf.printf "Invalid selection!\n";
+                powerups ()
+              end
+              else if List.mem (y, x) !bombed_squares then begin
+                Printf.printf "Already bombed that square!\n";
+                powerups ()
+              end
+              else begin
+                bombed_squares := (y, x) :: !bombed_squares;
+                for i = 0 to 2 do
+                  for j = 0 to 2 do
+                    let result = shoot grid2 (y + i, x + j) in
+                    if result = "Hit!" then gold := !gold + 50;
+                    Printf.printf "%s \n" result
+                  done
+                done;
+                gold := !gold - 100
+              end
+            with _ ->
+              Printf.printf "Invalid input, try again\n";
+              powerups ())
+        else begin
+          Printf.printf
+            "Not enough gold to spend!\n\
+            \ select another powerup or use 'back' to go back\n";
+          powerups ()
+        end
+    | "4" ->
+        if !gold >= 50 then (
+          Printf.printf
+            "Airstrike will randomly shoot cells on the enemy board. Each 50 \
+             gold you are willing to pay will shoot 2 cells. Please enter an \
+             the amount of gold you are willing to spend (ex: 100) or enter \
+             'back' to go back to the previous menu\n";
+          let (current_gold : int option) =
+            int_of_string_opt (string_of_int !gold)
+          in
+          let airstrike_choice = read_line () in
+          if airstrike_choice = "back" then powerups ()
+          else
+            let gold_input = int_of_string_opt airstrike_choice in
+            if gold_input = None then
+              let () = Printf.printf "Invalid input, try again\n" in
+              powerups ()
+            else if gold_input > current_gold then
+              let () = print_endline "You do not have enough gold!\n" in
+              powerups ()
+            else airstrike grid2 (!gold / 50))
     | "back" -> Printf.printf "going back\n"
+    | "Quit" -> exit 0
     | _ ->
         ANSITerminal.printf [ ANSITerminal.red ] "invalid powerup selection\n";
         powerups player ()
@@ -434,7 +506,7 @@ let rec game_loop grid_size =
   end
 
 and next_level () =
-  Printf.printf "Do you want to progress to level 2? (y/n):\n";
+  Printf.printf "You won!\n Do you want to progress to level 2? (y/n):\n";
   match read_line () with
   | "y" ->
       Printf.printf "Starting level 2...\n";
@@ -465,11 +537,13 @@ and duo_game_over player () =
       duo_game_over player ()
 
 and main_menu () =
+  Printf.printf "Welcome to battleship!\n";
   Printf.printf "1. Start Game\n2. Quit\nChoose an option:\n";
   match read_line () with
   | "1" ->
       select_ai_mode ();
-      Printf.printf "Starting level 1...\n";
+      Printf.printf
+        "Starting level 1...\nYou may type 'Quit' at any time to exit.\n";
       game_loop 10
   | "2" -> exit 0
   | _ ->
