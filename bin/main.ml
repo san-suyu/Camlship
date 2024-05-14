@@ -43,6 +43,7 @@ let rec game_loop grid_size =
              go back to the previous menu\n";
           let row_choice = read_line () in
           if row_choice = "back" then powerups ()
+          else if row_choice = "Quit" then exit 0
           else
             try
               let y = char_to_index row_choice.[0] in
@@ -76,6 +77,7 @@ let rec game_loop grid_size =
              'back' to go back to the previous menu\n";
           let column_choice = read_line () in
           if column_choice = "back" then powerups ()
+          else if column_choice = "Quit" then exit 0
           else
             try
               let x = int_of_string column_choice in
@@ -107,12 +109,15 @@ let rec game_loop grid_size =
             "Square bomb will bomb a 3x3 area. Please enter the top left \
              corner of the area you wish to bomb (ex: A1) or enter 'back' to \
              go back to the previous menu\n";
-          let choice = read_line () in
-          if choice = "back" then powerups ()
+          let square_choice = read_line () in
+          if square_choice = "back" then powerups ()
+          else if square_choice = "Quit" then exit 0
           else
             try
-              let y_char = choice.[0] in
-              let x_substr = String.sub choice 1 (String.length choice - 1) in
+              let y_char = square_choice.[0] in
+              let x_substr =
+                String.sub square_choice 1 (String.length square_choice - 1)
+              in
               let y = char_to_index y_char in
               let x = int_of_string x_substr - 1 in
               if not (validate_bomb y x grid_size) then begin
@@ -165,6 +170,7 @@ let rec game_loop grid_size =
               powerups ()
             else airstrike grid2 (!gold / 50))
     | "back" -> Printf.printf "going back\n"
+    | "Quit" -> exit 0
     | _ ->
         Printf.printf "invalid powerup selection\n";
         powerups ()
@@ -177,39 +183,43 @@ let rec game_loop grid_size =
       print_grid grid1 true "Player's Grid";
       try
         let input = read_line () in
-        let inputs = Str.split (Str.regexp "[ \t]+") input in
-        match inputs with
-        | [ start; finish ] -> begin
-            let start_y_char = start.[0] in
-            let start_x_substr = String.sub start 1 (String.length start - 1) in
-            let y1 = char_to_index start_y_char in
-            let x1 = int_of_string start_x_substr - 1 in
-            let finish_y_char = finish.[0] in
-            let finish_x_substr =
-              String.sub finish 1 (String.length finish - 1)
-            in
-            let y2 = char_to_index finish_y_char in
-            let x2 = int_of_string finish_x_substr - 1 in
-            if
-              validate_coordinates y1 x1 grid_size
-              && validate_coordinates y2 x2 grid_size
-            then
-              if place_ship grid1 count (y1, x1) (y2, x2) then begin
-                Printf.printf "Ship placed successfully.\n";
-                if count + 1 = max_ships then
-                  print_grid grid1 true "Final Player's Grid";
-                place_ships (count + 1) max_ships
-              end
+        if input = "Quit" then exit 0
+        else
+          let inputs = Str.split (Str.regexp "[ \t]+") input in
+          match inputs with
+          | [ start; finish ] -> begin
+              let start_y_char = start.[0] in
+              let start_x_substr =
+                String.sub start 1 (String.length start - 1)
+              in
+              let y1 = char_to_index start_y_char in
+              let x1 = int_of_string start_x_substr - 1 in
+              let finish_y_char = finish.[0] in
+              let finish_x_substr =
+                String.sub finish 1 (String.length finish - 1)
+              in
+              let y2 = char_to_index finish_y_char in
+              let x2 = int_of_string finish_x_substr - 1 in
+              if
+                validate_coordinates y1 x1 grid_size
+                && validate_coordinates y2 x2 grid_size
+              then
+                if place_ship grid1 count (y1, x1) (y2, x2) then begin
+                  Printf.printf "Ship placed successfully.\n";
+                  if count + 1 = max_ships then
+                    print_grid grid1 true "Final Player's Grid";
+                  place_ships (count + 1) max_ships
+                end
+                else begin
+                  Printf.printf "Invalid placement, try again.\n";
+                  place_ships count max_ships
+                end
               else begin
-                Printf.printf "Invalid placement, try again.\n";
+                Printf.printf "Coordinates are out of bounds, try again.\n";
                 place_ships count max_ships
               end
-            else begin
-              Printf.printf "Coordinates are out of bounds, try again.\n";
-              place_ships count max_ships
             end
-          end
-        | _ -> raise (Failure "Invalid input format")
+          | _ -> raise (Failure "Invalid input format")
       with
       | Scanf.Scan_failure _ | Failure _ ->
           Printf.printf "Please check your input format and try again.\n";
@@ -227,7 +237,8 @@ let rec game_loop grid_size =
     Printf.printf "or enter 'powerup' to use a powerup:";
     try
       let input = read_line () in
-      if String.trim input = "powerup" || input = "p" then begin
+      if input = "Quit" then exit 0
+      else if String.trim input = "powerup" || input = "p" then begin
         powerups ();
         print_grid grid2 false "Opponent's Grid";
         if not (check_game_over grid1 || check_game_over grid2) then (
@@ -287,11 +298,13 @@ and game_over () =
       game_over ()
 
 and main_menu () =
+  Printf.printf "Welcome to battleship!\n";
   Printf.printf "1. Start Game\n2. Quit\nChoose an option:\n";
   match read_line () with
   | "1" ->
       select_ai_mode ();
-      Printf.printf "Starting level 1...\n";
+      Printf.printf
+        "Starting level 1...\nYou may type 'Quit' at any time to exit.\n";
       game_loop 10
   | "2" -> exit 0
   | _ ->
