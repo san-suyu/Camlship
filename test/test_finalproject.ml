@@ -36,9 +36,9 @@ let test_place_ship_failures _ =
   let grid = create_grid 10 in
   let _ = place_ship grid 1 (0, 0) (0, 4) in
   assert_bool "Diagonal placement should fail"
-    (try place_ship grid 1 (0, 0) (4, 4) with _ -> true);
+    (not (try place_ship grid 1 (0, 0) (4, 4) with _ -> false));
   assert_bool "Overlap placement should fail"
-    (try place_ship grid 2 (0, 2) (0, 6) with _ -> true)
+    (not (try place_ship grid 2 (0, 2) (0, 6) with _ -> false))
 
 let test_shoot _ =
   let grid = create_grid 10 in
@@ -93,13 +93,14 @@ let test_boundary_ship_placement_failure _ =
 let test_horizontal_ship_overlap _ =
   let grid = create_grid 10 in
   ignore (place_ship grid 5 (2, 2) (2, 6));
-  assert_bool "Overlap should fail" (not (place_ship grid 6 (2, 5) (2, 9)))
+  assert_bool "Overlap should fail"
+    (not (try place_ship grid 6 (2, 5) (2, 9) with _ -> false))
 
 let test_vertical_ship_overlap _ =
   let grid = create_grid 10 in
   ignore (place_ship grid 7 (3, 3) (7, 3));
   assert_bool "Vertical overlap should fail"
-    (not (place_ship grid 8 (5, 3) (9, 3)))
+    (not (try place_ship grid 8 (5, 3) (9, 3) with _ -> false))
 
 let test_complete_ship_destruction _ =
   let grid = create_grid 10 in
@@ -189,6 +190,94 @@ let test_ai_efficiency_hard _ =
   done;
   assert_bool "Hard AI should be more efficient than Easy AI" (!hits > 10)
 
+let powerup_grid = create_grid 10
+let gold = ref 100
+let bombed_rows = ref []
+let bombed_columns = ref []
+let bombed_squares = ref []
+
+let bomb_row row =
+  let final = ref "" in
+  let y = char_to_index row in
+  if List.mem y !bombed_rows then begin
+    final := "Already bombed that row!"
+  end
+  else begin
+    bombed_rows := y :: !bombed_rows;
+    for i = 0 to Array.length powerup_grid - 1 do
+      let result = shoot powerup_grid (y, i) in
+      if result = "Hit!" then gold := !gold + 50;
+      final := result
+    done;
+    gold := !gold - 100
+  end;
+  !final
+
+let test_bomb_row _ =
+  let _ = place_ship powerup_grid 1 (0, 1) (0, 5) in
+  assert_bool "Bombing a fresh row" ("You sunk a ship!" = bomb_row 'A');
+  assert_bool "Gold after bombing a ship length 5" (!gold = 250);
+  assert_bool "Bombing previously bombed row"
+    ("Already bombed that row!" = bomb_row 'A')
+
+let powerup_grid2 = create_grid 10
+
+let bomb_column col =
+  let final = ref "" in
+  let x = int_of_string col in
+  if List.mem x !bombed_columns then begin
+    final := "Already bombed that column!"
+  end
+  else begin
+    bombed_columns := x :: !bombed_columns;
+    for i = 0 to Array.length powerup_grid2 - 1 do
+      let result = shoot powerup_grid2 (i, x) in
+      if result = "Hit!" then gold := !gold + 50;
+      final := result
+    done;
+    gold := !gold - 100
+  end;
+  !final
+
+let test_bomb_column _ =
+  let _ = place_ship powerup_grid2 1 (1, 0) (4, 0) in
+  assert_bool "Bombing a fresh column" ("You sunk a ship!" = bomb_column "1");
+  assert_bool "Gold after bombing a ship length 4" (!gold = 200);
+  assert_bool "Bombing previously bombed column"
+    ("Already bombed that column!" = bomb_column "1")
+
+let powerup_grid3 = create_grid 10
+
+let square_bomb row col =
+  let final = ref "" in
+  let y = char_to_index row in
+  let x = int_of_string col in
+  if not (validate_bomb y x (Array.length powerup_grid3)) then begin
+    final := "Invalid selection!"
+  end
+  else if List.mem (y, x) !bombed_squares then begin
+    final := "Already bombed that square!"
+  end
+  else begin
+    bombed_squares := (y, x) :: !bombed_squares;
+    for i = 0 to 2 do
+      for j = 0 to 2 do
+        let result = shoot powerup_grid3 (y + i, x + j) in
+        if result = "Hit!" then gold := !gold + 50;
+        final := result
+      done
+    done;
+    gold := !gold - 100
+  end;
+  !final
+
+let test_square_bomb _ =
+  let _ = place_ship powerup_grid2 1 (1, 0) (4, 0) in
+  assert_bool "Bombing a fresh square" ("You sunk a ship!" = square_bomb 'A' "1");
+  assert_bool "Gold after bombing a ship length 1" (!gold = 50);
+  assert_bool "Bombing previously bombed square"
+    ("Already bombed that square!" = square_bomb 'A' "1")
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -220,6 +309,9 @@ let suite =
          "test_full_grid_sunk" >:: test_full_grid_sunk;
          "test_ai_efficiency_easy" >:: test_ai_efficiency_easy;
          "test_ai_efficiency_hard" >:: test_ai_efficiency_hard;
+         "test_bomb_row" >:: test_bomb_row;
+         "test_bomb_column" >:: test_bomb_column;
+         "test_square_bomb" >:: test_square_bomb;
        ]
 
 let () = run_test_tt_main suite

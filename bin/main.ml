@@ -467,9 +467,6 @@ let rec game_loop grid_size =
       let gold = if player mod 2 = 0 then gold2 else gold1 in
       let grid = if player mod 2 = 0 then grid1 else grid3 in
       let player_no = if player mod 2 = 0 then 2 else 1 in
-      (* if player_no = 1 then begin print_grid grid3 false "Opponent's grid";
-         print_grid grid1 true "Your grid" end else begin print_grid grid1 false
-         "Opponent's grid"; print_grid grid3 true "Your grid" end; *)
       ANSITerminal.printf [ ANSITerminal.magenta ]
         "It is currently Player %i 's turn\n" player_no;
       Printf.printf "You currently have %i gold\n" !gold;
