@@ -141,14 +141,18 @@ let rec game_loop grid_size =
     String.trim (read_line ())
   in
   let rec powerups player () =
-    let gold = if player = 1 then gold1 else gold2 in
-    let grid = if player = 1 then grid3 else grid1 in
-    let bombed_columns =
-      if player = 1 then bombed_columns1 else bombed_columns2
+    let gold = if player = 1 || player = 0 then gold1 else gold2 in
+    let grid =
+      if player = 1 then grid3 else if player = 0 then grid2 else grid1
     in
-    let bombed_rows = if player = 1 then bombed_rows1 else bombed_rows2 in
+    let bombed_columns =
+      if player = 1 || player = 0 then bombed_columns1 else bombed_columns2
+    in
+    let bombed_rows =
+      if player = 1 || player = 0 then bombed_rows1 else bombed_rows2
+    in
     let bombed_squares =
-      if player = 1 then bombed_squares1 else bombed_squares2
+      if player = 1 || player = 0 then bombed_squares1 else bombed_squares2
     in
     let choice = print_powerups () in
     match choice with
@@ -455,7 +459,7 @@ let rec game_loop grid_size =
       try
         let input = read_line () in
         if String.trim input = "powerup" || input = "p" then begin
-          powerups 1 ();
+          powerups 0 ();
           print_grid grid2 false "Opponent's Grid";
           if not (check_game_over grid1 || check_game_over grid2) then (
             let ai_result = ai_guess grid1 in
