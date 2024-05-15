@@ -242,7 +242,7 @@ let count_hit_cells grid =
   done;
   !count
 
-let calculate_bounding_box coordinates =
+let get_bounding_box coordinates =
   let min_x = ref max_int and min_y = ref max_int in
   let max_x = ref min_int and max_y = ref min_int in
   List.iter
@@ -259,7 +259,7 @@ let calculate_bounding_box coordinates =
 
 let assemble_custom_ship pieces id =
   let cells = List.flatten pieces in
-  let top_left, width, height = calculate_bounding_box cells in
+  let top_left, width, height = get_bounding_box cells in
   let health = List.length cells in
   { id; cells; health; top_left; width; height }
 
@@ -299,7 +299,7 @@ let create_custom_ship_from_grid grid =
       | _ -> ()
     done
   done;
-  let top_left, width, height = calculate_bounding_box !coordinates in
+  let top_left, width, height = get_bounding_box !coordinates in
   let new_coordinates =
     List.map (fun (y, x) -> (y - fst top_left, x - snd top_left)) !coordinates
   in
@@ -313,3 +313,15 @@ let create_custom_ship_from_grid grid =
   }
 
 let get_ship_health_length () = Hashtbl.length ship_health
+
+let print_custom_ship custom_ship =
+  let grid = Array.make_matrix custom_ship.height custom_ship.width Empty in
+  List.iter
+    (fun (y, x) ->
+      let local_y = y - fst custom_ship.top_left in
+      let local_x = x - snd custom_ship.top_left in
+      if local_y < custom_ship.height && local_x < custom_ship.width then
+        grid.(local_y).(local_x) <- Ship custom_ship.id
+      else raise (Invalid_argument "index out of bounds"))
+    custom_ship.cells;
+  print_grid grid true "Custom Ship"

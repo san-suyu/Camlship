@@ -1,7 +1,6 @@
 open Battleship
 
 let mode = ref 0
-let ship_id = ref 0
 let custom_ship = ref None
 
 let select_ai_mode () =
@@ -77,6 +76,37 @@ let rec read_coordinates grid =
       process_coords inputs;
       print_grid grid true "Custom Ship Design";
       read_coordinates grid
+
+let rec place_custom_ship_on_grid grid custom_ship =
+  Printf.printf
+    "Place the custom ship on the actual grid (Format: Y1X1, e.g., A1):\n";
+  try
+    let input = read_line () in
+    let start_y_char = input.[0] in
+    let start_x_substr = String.sub input 1 (String.length input - 1) in
+    let y1 = Battleship.char_to_index start_y_char in
+    let x1 = int_of_string start_x_substr - 1 in
+    if Battleship.validate_coordinates y1 x1 (Array.length grid) then
+      let top_left = (y1, x1) in
+      if Battleship.place_custom_ship grid custom_ship top_left then begin
+        Printf.printf "Custom ship placed successfully.\n";
+        Battleship.print_grid grid true "Final Player's Grid"
+      end
+      else begin
+        Printf.printf "Invalid placement, try again.\n";
+        place_custom_ship_on_grid grid custom_ship
+      end
+    else begin
+      Printf.printf "Coordinates are out of bounds, try again.\n";
+      place_custom_ship_on_grid grid custom_ship
+    end
+  with
+  | Failure _ ->
+      Printf.printf "Please check your input format and try again.\n";
+      place_custom_ship_on_grid grid custom_ship
+  | Battleship.InvalidPlacement ->
+      Printf.printf "Invalid placement, try again.\n";
+      place_custom_ship_on_grid grid custom_ship
 
 let gold1 = ref 100
 let gold2 = ref 100
@@ -484,46 +514,61 @@ let rec game_loop grid_size =
   else begin
     let rec player1 count max_ships =
       if count < max_ships then begin
-        Printf.printf "Place your %d ship (Format: Y1X1 Y2X2, e.g., A1 A2):\n"
+        Printf.printf
+          "Place your %d. ship (Format: Y1X1 Y2X2, e.g., A1 A2) or type \
+           'design' to create a custom ship:\n"
           (count + 1);
         print_grid grid1 true "Player 1's Grid";
         try
           let input = read_line () in
-          let inputs = Str.split (Str.regexp "[ \t]+") input in
-          match inputs with
-          | [ start; finish ] -> begin
-              let start_y_char = start.[0] in
-              let start_x_substr =
-                String.sub start 1 (String.length start - 1)
-              in
-              let y1 = char_to_index start_y_char in
-              let x1 = int_of_string start_x_substr - 1 in
-              let finish_y_char = finish.[0] in
-              let finish_x_substr =
-                String.sub finish 1 (String.length finish - 1)
-              in
-              let y2 = char_to_index finish_y_char in
-              let x2 = int_of_string finish_x_substr - 1 in
-              if
-                validate_coordinates y1 x1 grid_size
-                && validate_coordinates y2 x2 grid_size
-              then
-                if place_ship grid1 count (y1, x1) (y2, x2) then begin
-                  Printf.printf "Ship placed successfully.\n";
-                  if count + 1 = max_ships then
-                    print_grid grid1 true "Final Player 1's Grid";
-                  player1 (count + 1) max_ships
-                end
+          if input = "design" then begin
+            let custom = read_coordinates grid1 in
+            custom_ship := Some custom;
+            let top_left_y, top_left_x = custom.top_left in
+            Printf.printf
+              "Custom ship designed with health %d, bounding box (%d, %d), and \
+               top-left coordinate: (%d, %d)\n"
+              custom.health custom.width custom.height (top_left_y + 1)
+              (top_left_x + 1);
+            Battleship.print_custom_ship custom;
+            player1 (count + 1) max_ships
+          end
+          else
+            let inputs = String.split_on_char ' ' input in
+            match inputs with
+            | [ start; finish ] -> begin
+                let start_y_char = start.[0] in
+                let start_x_substr =
+                  String.sub start 1 (String.length start - 1)
+                in
+                let y1 = char_to_index start_y_char in
+                let x1 = int_of_string start_x_substr - 1 in
+                let finish_y_char = finish.[0] in
+                let finish_x_substr =
+                  String.sub finish 1 (String.length finish - 1)
+                in
+                let y2 = char_to_index finish_y_char in
+                let x2 = int_of_string finish_x_substr - 1 in
+                if
+                  validate_coordinates y1 x1 grid_size
+                  && validate_coordinates y2 x2 grid_size
+                then
+                  if place_ship grid1 count (y1, x1) (y2, x2) then begin
+                    Printf.printf "Ship placed successfully.\n";
+                    if count + 1 = max_ships then
+                      print_grid grid1 true "Final Player 1's Grid";
+                    player1 (count + 1) max_ships
+                  end
+                  else begin
+                    Printf.printf "Invalid placement, try again.\n";
+                    player1 count max_ships
+                  end
                 else begin
-                  Printf.printf "Invalid placement, try again.\n";
+                  Printf.printf "Coordinates are out of bounds, try again.\n";
                   player1 count max_ships
                 end
-              else begin
-                Printf.printf "Coordinates are out of bounds, try again.\n";
-                player1 count max_ships
               end
-            end
-          | _ -> raise (Failure "Invalid input format")
+            | _ -> raise (Failure "Invalid input format")
         with
         | Scanf.Scan_failure _ | Failure _ ->
             Printf.printf "Please check your input format and try again.\n";
@@ -546,42 +591,53 @@ let rec game_loop grid_size =
           (count + 1);
         print_grid grid3 true "Player 2's Grid";
         try
-          let input = read_line () in
-          let inputs = Str.split (Str.regexp "[ \t]+") input in
-          match inputs with
-          | [ start; finish ] -> begin
-              let start_y_char = start.[0] in
-              let start_x_substr =
-                String.sub start 1 (String.length start - 1)
-              in
-              let y1 = char_to_index start_y_char in
-              let x1 = int_of_string start_x_substr - 1 in
-              let finish_y_char = finish.[0] in
-              let finish_x_substr =
-                String.sub finish 1 (String.length finish - 1)
-              in
-              let y2 = char_to_index finish_y_char in
-              let x2 = int_of_string finish_x_substr - 1 in
-              if
-                validate_coordinates y1 x1 grid_size
-                && validate_coordinates y2 x2 grid_size
-              then
-                if place_ship grid3 count (y1, x1) (y2, x2) then begin
-                  Printf.printf "Ship placed successfully.\n";
-                  if count + 1 = max_ships then
-                    print_grid grid3 true "Final Player 2's Grid";
-                  player2 (count + 1) max_ships
-                end
+          if !custom_ship <> None then begin
+            match !custom_ship with
+            | Some custom ->
+                print_custom_ship custom;
+                place_custom_ship_on_grid grid3 custom;
+                player2 (count + 1) max_ships
+            | None ->
+                Printf.printf "No custom ship designed by Player 1.\n";
+                player2 count max_ships
+          end
+          else
+            let input = read_line () in
+            let inputs = Str.split (Str.regexp "[ \t]+") input in
+            match inputs with
+            | [ start; finish ] -> begin
+                let start_y_char = start.[0] in
+                let start_x_substr =
+                  String.sub start 1 (String.length start - 1)
+                in
+                let y1 = char_to_index start_y_char in
+                let x1 = int_of_string start_x_substr - 1 in
+                let finish_y_char = finish.[0] in
+                let finish_x_substr =
+                  String.sub finish 1 (String.length finish - 1)
+                in
+                let y2 = char_to_index finish_y_char in
+                let x2 = int_of_string finish_x_substr - 1 in
+                if
+                  validate_coordinates y1 x1 grid_size
+                  && validate_coordinates y2 x2 grid_size
+                then
+                  if place_ship grid3 count (y1, x1) (y2, x2) then begin
+                    Printf.printf "Ship placed successfully.\n";
+                    if count + 1 = max_ships then
+                      print_grid grid3 true "Final Player 2's Grid";
+                    player2 (count + 1) max_ships
+                  end
+                  else begin
+                    Printf.printf "Invalid placement, try again.\n";
+                    player2 count max_ships
+                  end
                 else begin
-                  Printf.printf "Invalid placement, try again.\n";
+                  Printf.printf "Coordinates are out of bounds, try again.\n";
                   player2 count max_ships
                 end
-              else begin
-                Printf.printf "Coordinates are out of bounds, try again.\n";
-                player2 count max_ships
               end
-            end
-          | _ -> raise (Failure "Invalid input format")
+            | _ -> raise (Failure "Invalid input format")
         with
         | Scanf.Scan_failure _ | Failure _ ->
             Printf.printf "Please check your input format and try again.\n";
