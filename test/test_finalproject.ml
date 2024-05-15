@@ -459,6 +459,70 @@ let test_ai_mine_interaction _ =
   set_ai_mode Hard;
   assert_equal "Mine hit!" (ai_guess grid)
 
+let test_ship_placement_horizontal_edge _ =
+  let grid = create_grid 10 in
+  assert_bool "Place ship at horizontal edge should succeed"
+    (place_ship grid 100 (0, 0) (0, 9))
+
+let test_multiple_ship_placement _ =
+  let grid = create_grid 10 in
+  assert_bool "First ship placed" (place_ship grid 101 (0, 0) (0, 4));
+  assert_bool "Second ship placed without overlap"
+    (place_ship grid 102 (1, 0) (1, 4))
+
+let test_ship_placement_reversed_coordinates _ =
+  let grid = create_grid 10 in
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 103 (5, 5) (1, 5)))
+
+let test_mine_triggered_by_ai _ =
+  let grid = create_grid 10 in
+  ignore (place_mine grid (5, 5));
+  set_ai_mode Hard;
+  assert_equal "Mine hit!" (ai_guess grid)
+
+let test_game_over_detection _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 104 (0, 0) (0, 0));
+  ignore (shoot grid (0, 0));
+  assert_bool "Game should be over when all ships are sunk"
+    (check_game_over grid)
+
+let test_ship_placement_next_to_another _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 105 (1, 1) (1, 5));
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 106 (2, 1) (2, 5)))
+
+let test_ai_performance_no_repeats _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 107 (2, 2) (2, 6));
+  let seen = ref [] in
+  for _ = 1 to 100 do
+    let guess = ai_guess grid in
+    assert_bool "AI guessed a new cell" (not (List.mem guess !seen));
+    seen := guess :: !seen
+  done
+
+let test_grid_initialization_all_empty _ =
+  let grid = create_grid 10 in
+  for y = 0 to 9 do
+    for x = 0 to 9 do
+      assert_equal Empty grid.(y).(x)
+    done
+  done
+
+let test_ship_overlapping_mine _ =
+  let grid = create_grid 10 in
+  ignore (place_mine grid (4, 4));
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 108 (4, 3) (4, 5)))
+
+let test_valid_mine_placement_around_ships _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 109 (5, 5) (5, 9));
+  assert_bool "Place mine near ship but not on it" (place_mine grid (5, 4))
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -521,6 +585,21 @@ let suite =
          "test_ship_and_mine_coexistence" >:: test_ship_and_mine_coexistence;
          "test_no_repeat_ai_shots" >:: test_no_repeat_ai_shots;
          "test_ai_mine_interaction" >:: test_ai_mine_interaction;
+         "test_ship_placement_horizontal_edge"
+         >:: test_ship_placement_horizontal_edge;
+         "test_multiple_ship_placement" >:: test_multiple_ship_placement;
+         "test_ship_placement_reversed_coordinates"
+         >:: test_ship_placement_reversed_coordinates;
+         "test_mine_triggered_by_ai" >:: test_mine_triggered_by_ai;
+         "test_game_over_detection" >:: test_game_over_detection;
+         "test_ship_placement_next_to_another"
+         >:: test_ship_placement_next_to_another;
+         "test_ai_performance_no_repeats" >:: test_ai_performance_no_repeats;
+         "test_grid_initialization_all_empty"
+         >:: test_grid_initialization_all_empty;
+         "test_ship_overlapping_mine" >:: test_ship_overlapping_mine;
+         "test_valid_mine_placement_around_ships"
+         >:: test_valid_mine_placement_around_ships;
        ]
 
 let () = run_test_tt_main suite
