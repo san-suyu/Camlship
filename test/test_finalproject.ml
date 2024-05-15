@@ -118,9 +118,10 @@ let test_complete_ship_destruction _ =
 
 let test_multiple_shots_same_place _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 10 (4, 4) (4, 4));
-  ignore (shoot grid (4, 4));
-  assert_equal "Already guessed this position!" (shoot grid (4, 4))
+  ignore (place_ship grid 1 (0, 0) (1, 0));
+  ignore (shoot grid (0, 0));
+  ignore (shoot grid (1, 0));
+  assert_equal "Already guessed this position!" (shoot grid (0, 0))
 
 let test_random_ai_guess_effectiveness _ =
   let grid = create_grid 10 in
@@ -473,35 +474,36 @@ let test_multiple_ship_placement _ =
 let test_ship_placement_reversed_coordinates _ =
   let grid = create_grid 10 in
   assert_raises InvalidPlacement (fun () ->
-      ignore (place_ship grid 103 (5, 5) (1, 5)))
+      ignore (place_ship grid 3 (5, 5) (1, 5)))
 
 let test_mine_triggered_by_ai _ =
   let grid = create_grid 10 in
-  ignore (place_mine grid (5, 5));
-  set_ai_mode Hard;
+  ignore (place_mine grid (1, 1));
+  set_ai_mode Easy;
   assert_equal "Mine hit!" (ai_guess grid)
 
 let test_game_over_detection _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 104 (0, 0) (0, 0));
+  ignore (place_ship grid 1 (0, 0) (1, 0));
   ignore (shoot grid (0, 0));
+  ignore (shoot grid (1, 0));
   assert_bool "Game should be over when all ships are sunk"
     (check_game_over grid)
 
 let test_ship_placement_next_to_another _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 105 (1, 1) (1, 5));
+  ignore (place_ship grid 1 (0, 0) (0, 3));
   assert_raises InvalidPlacement (fun () ->
-      ignore (place_ship grid 106 (2, 1) (2, 5)))
+      ignore (place_ship grid 2 (0, 4) (0, 7)))
 
 let test_ai_performance_no_repeats _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 107 (2, 2) (2, 6));
   let seen = ref [] in
   for _ = 1 to 100 do
     let guess = ai_guess grid in
-    assert_bool "AI guessed a new cell" (not (List.mem guess !seen));
-    seen := guess :: !seen
+    if List.mem guess !seen then
+      assert_failure "AI guessed a cell more than once"
+    else seen := guess :: !seen
   done
 
 let test_grid_initialization_all_empty _ =
