@@ -16,7 +16,7 @@ pm:
   name: Raymond Lin
   netid: rl569
 # Set to false if you don't want your gallery entry to be public.
-publish: false
+publish: true
 # Pithy title
 title: "Camlship"
 # OK if this is a Cornell Github link, but public gallery viewers won't be able to see it.

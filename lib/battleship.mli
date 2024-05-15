@@ -1,17 +1,18 @@
-(* custom ship structure with detailed properties of each ship *)
+(** custom ship structure with detailed properties of each ship *)
+
 type custom_ship = {
-  (* unique identifier for a ship *)
   id : int;
-  (* list of coordinates occupied by ship *)
+  (* unique identifier for a ship *)
   cells : (int * int) list;
+  (* list of coordinates occupied by ship *)
+  health : int;
   (* health of the ship, typically equal to number of cells it occupies on
      grid *)
-  health : int;
-  (* top-left coordinate of the ship boundary*)
   top_left : int * int;
+  (* top-left coordinate of the ship boundary*)
+  width : int;
   (* width of the ships boundary *)
-  width : int; (* height of ships boundary *)
-  height : int;
+  height : int; (* height of ships boundary *)
 }
 
 (* Abstraction function: A custom_ship represents a unique ship on the grid with
@@ -28,108 +29,126 @@ type custom_ship = {
    coordinates in [cells]. - [top_left] must actually be the coordinate with the
    smallest x and y values in [cells]. *)
 
-(* types of cells that can be present on the game grid *)
 type cell =
-  (* empty cell with no ships or mines *)
+  (* types of cells that can be present on the game grid *)
   | Empty
-  (* cell containing part of a ship identified by an int *)
+  (* empty cell with no ships, mines, hits, misses, etc *)
   | Ship of int
-  (* cell containing a mine *)
+  (* cell containing part of a ship identified by an int *)
   | Mine
-  (*cell that was hit containing part of a ship identified by an int *)
+  (* cell containing a mine *)
   | Hit of int
-  (* cell where a mine has exploded *)
+  (* cell that was hit containing part of a ship identified by an int *)
   | Exploded
-  (*cell that was shot at but was empty *)
+  (* cell where a mine has exploded *)
   | Miss
-  (* cell occupied by a custom ship *)
+  (* cell that was shot at but was empty *)
   | CustomShip of custom_ship
-  (* cell containing a hit part of a custom ship *)
+  (* cell occupied by a custom ship *)
   | HitCustom of custom_ship
+(* cell containing a hit part of a custom ship *)
 
-(* type representing the game grid as a 2D array of cells *)
 type grid = cell array array
+(** type representing the game grid as a 2D array of cells *)
 
-(* exceptions that can be raised during the game *)
-(* raised when a ship or mine cannot be placed at the specified location *)
 exception InvalidPlacement
+(** exceptions that can be raised during the game. Raised when a ship or mine
+    cannot be placed at the specified location *)
 
-(* raised when an input, such as coordinates, are invalid *)
 exception InvalidInput
+(** raised when an input, such as coordinates, are invalid *)
 
-(* creates grid of specified size initialized with Empty cells *)
 val create_grid : int -> grid
+(** [create_grid size] creates grid of specified [size] initialized with Empty
+    cells *)
 
-(* prints current state of the grid to stdout *)
 val print_grid : grid -> bool -> string -> unit
+(** [print_grid grid show name] prints current state of the grid to stdout. If
+    [show] is true, the ships on the grid will be shown. *)
 
-(* tries to place a ship at specified coordinates, returns true if successful *)
 val place_ship : grid -> int -> int * int -> int * int -> bool
+(** [place_ship grid num (y1, x1) (y2, x2)] tries to place a ship at specified
+    coordinates, filling the cells including [(y1, x1)] and [(y1, x1)] on
+    [grid], returns true if successful *)
 
-(* tries to place a mine at specified coordinates, returns true if successful *)
 val place_mine : grid -> int * int -> bool
+(** [place_mine grid (y, x)] tries to place a mine at specified coordinates
+    [(y, x)] on [grid] returns true if successful *)
 
-(* processes a shot at the specified coordinates, returning result message *)
 val shoot : grid -> int * int -> string
+(** [shoot grid (y, x)] processes a shot at the specified coordinates [(y, x)],
+    returning result message *)
 
-(* handles explosion of a mine, returning a result message *)
 val mine_shot : grid -> string
+(** [mine_shot grid] handles explosion of a mine on [grid], returning a result
+    message *)
 
-(*makes a guess for the AI based on the set AI mode, returning result message *)
 val ai_guess : grid -> string
+(** [ai_guess grid] makes a guess for the AI based on the set AI mode, returning
+    result message *)
 
-(* checks if game is over (all ships have been sunk) *)
 val check_game_over : grid -> bool
+(** [check_game_over grid] checks if game is over for [grid] (all ships have
+    been sunk) *)
 
-(* converts a character to the corresponding index (e.g., 'A' to 0) *)
 val char_to_index : char -> int
+(** [char_to_index character] converts [character] to the corresponding index
+    (e.g., 'A' to 0) *)
 
-(* validates if specified coordinates are within the grid boundaries *)
 val validate_coordinates : int -> int -> int -> bool
+(** [validate_coordinates x y size] validates if specified coordinates [x] and
+    [y] are within the grid boundaries, [size] *)
 
-(* valides if a bomb placement is within the grid boundaries *)
 val validate_bomb : int -> int -> int -> bool
+(** [validate_bomb x y size] validates if a bomb placement coordinates [x] and
+    [y] are within the grid boundaries, [size] *)
 
-(* randomly places ships on grid *)
 val random_place_ships : grid -> unit
+(** [random_place_ships grid] randomly places ships on [grid] *)
 
-(* randomly places a specified number of mines on grid *)
 val random_place_mines : grid -> int -> unit
+(** [random_place_mines grid num] randomly places a specified number [num] of
+    mines on [grid] *)
 
-(* AI difficulty modes *)
 type ai_mode =
-  (* easy difficulty setting for AI *)
+  (* AI difficulty modes *)
   | Easy
-  (* hard difficulty setting for AI *)
+  (* easy difficulty setting for AI *)
   | Hard
+(* hard difficulty setting for AI *)
 
-(* sets current AI difficulty mode *)
 val set_ai_mode : ai_mode -> unit
+(** [set_ai_mode mode] sets current AI difficulty mode to [mode] *)
 
-(* retrieves current AI difficulty mode *)
 val get_ai_mode : unit -> ai_mode
+(** [get_ai_mode ()] retrieves current AI difficulty mode *)
 
-(* counts cells of a specified type on grid *)
 val count_cell_type : grid -> cell -> int
+(** [count_cell_type grid cell_type] counts cells of a specified type
+    [cell_type] on [grid] *)
 
-(* counts number of hit cells on grid *)
 val count_hit_cells : grid -> int
+(** [count_hit_cells grid] counts number of hit cells on [grid] *)
 
-(* assembles a custom ship from a list of coordinates *)
 val assemble_custom_ship : (int * int) list list -> int -> custom_ship
+(** [assemble_custom_ship pieces id] assembles a custom ship from a list of
+    coordinates [pieces] *)
 
-(* attempts to place a custom ship on the grid at specified coordinates, returns
-   true if successful *)
 val place_custom_ship : grid -> custom_ship -> int * int -> bool
+(** [place_custom_ship grid custom_ship (y, x)] attempts to place [custom_ship]
+    on [grid] at specified coordinates [(y, x)], returns true if successful *)
 
-(* returns the health and length of all ships combined *)
 val get_ship_health_length : unit -> int
+(** [get_ship_health_length ()] returns the health and length of all ships
+    combined *)
 
-(* calculates bounding box for a list of coordinates *)
 val get_bounding_box : (int * int) list -> (int * int) * int * int
+(** [get_bounding_box coordinates] calculates bounding box for a list of
+    coordinates [coordinates] *)
 
-(* creates a custom ship from existing cells on the grid *)
 val create_custom_ship_from_grid : grid -> custom_ship
+(** [create_custom_ship_from_grid grid] creates a custom ship from existing
+    cells on [grid] *)
 
-(* prints details of a custom ship *)
 val print_custom_ship : custom_ship -> unit
+(** [print_custom_ship custom_ship] prints details of [custom_ship] *)
