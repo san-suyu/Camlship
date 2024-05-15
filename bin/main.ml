@@ -36,6 +36,7 @@ let rec game_loop grid_size =
   let grid2 = create_grid grid_size in
   let grid3 = create_grid grid_size in
   random_place_ships grid2;
+  random_place_mines grid2 5;
 
   let print_powerups () =
     ANSITerminal.printf [ ANSITerminal.yellow ]
@@ -377,7 +378,7 @@ let rec game_loop grid_size =
             (if result = "Hit!" then gold1 := !gold1 + 50
              else if result = "Mine hit!" then
                let ms = mine_shot grid1 in
-               Printf.printf "Mine shot: %s" ms
+               Printf.printf "Mine shot: %s\n" ms
              else if result = "Already guessed this position!" then
                let () = print_grid grid2 false "Opponent's Grid" in
                let () = print_grid grid1 true "Player's Grid" in
