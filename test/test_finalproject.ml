@@ -23,13 +23,24 @@ let test_place_ship_success _ =
   let grid = create_grid 10 in
   assert_bool "Horizontal placement should succeed"
     (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Horizontal reverse placement should succeed"
+    (place_ship grid 2 (0, 4) (0, 0));
   assert_bool "Vertical placement should succeed"
-    (place_ship grid 2 (2, 2) (6, 2));
+    (place_ship grid 3 (2, 2) (6, 2));
+  assert_bool "Vertical reverse placement should succeed"
+    (place_ship grid 4 (6, 2) (2, 2));
+
   for x = 0 to 4 do
     assert_equal (Ship 1) grid.(0).(x)
   done;
+  for x = 0 to 4 do
+    assert_equal (Ship 2) grid.(0).(x)
+  done;
   for y = 2 to 6 do
-    assert_equal (Ship 2) grid.(y).(2)
+    assert_equal (Ship 3) grid.(y).(2)
+  done;
+  for y = 2 to 6 do
+    assert_equal (Ship 4) grid.(y).(2)
   done
 
 let test_place_ship_failures _ =
