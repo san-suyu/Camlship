@@ -525,6 +525,156 @@ let test_valid_mine_placement_around_ships _ =
   ignore (place_ship grid 109 (5, 5) (5, 9));
   assert_bool "Place mine near ship but not on it" (place_mine grid (5, 4))
 
+let test_get_bounding_box _ =
+  let coordinates = [ (0, 0); (0, 1); (1, 0); (1, 1) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (0, 0) top_left;
+  assert_equal 2 width;
+  assert_equal 2 height
+
+let test_get_bounding_box_horizontal_line _ =
+  let coordinates = [ (0, 0); (1, 0); (2, 0); (2, 1) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (0, 0) top_left;
+  assert_equal 2 width;
+  assert_equal 2 height
+
+let test_get_bounding_box_vertical_line _ =
+  let coordinates = [ (1, 1); (2, 1); (3, 1) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (1, 1) top_left;
+  assert_equal 1 width;
+  assert_equal 3 height
+
+let test_get_bounding_box_Lshape _ =
+  let coordinates = [ (0, 0); (1, 0); (2, 0); (2, 1) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (0, 0) top_left;
+  assert_equal 2 width;
+  assert_equal 2 height
+
+let test_get_bounding_box_point _ =
+  let coordinates = [ (3, 4) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (3, 4) top_left;
+  assert_equal 1 width;
+  assert_equal 1 height
+
+let test_get_bounding_box_sparse_point _ =
+  let coordinates = [ (0, 0); (2, 3); (5, 1) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (0, 0) top_left;
+  assert_equal 4 width;
+  assert_equal 6 height
+
+let test_get_bounding_box_scattered_point _ =
+  let coordinates = [ (10, 10); (0, 0); (5, 5); (3, 2) ] in
+  let top_left, width, height = get_bounding_box coordinates in
+  assert_equal (0, 0) top_left;
+  assert_equal 11 width;
+  assert_equal 11 height
+
+let test_assemble_custom_ship _ =
+  let pieces = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
+  let custom_ship = assemble_custom_ship pieces 1 in
+  assert_equal 1 custom_ship.id;
+  assert_equal 4 custom_ship.health;
+  assert_equal (0, 0) custom_ship.top_left;
+  assert_equal 2 custom_ship.width;
+  assert_equal 2 custom_ship.height
+
+let test_assemble_custom_ship_id _ =
+  let pieces1 = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
+  let custom_ship1 = assemble_custom_ship pieces1 1 in
+  assert_equal 1 custom_ship1.id;
+  assert_equal 4 custom_ship1.health;
+  assert_equal (0, 0) custom_ship1.top_left;
+  assert_equal 2 custom_ship1.width;
+  assert_equal 2 custom_ship1.height;
+
+  let pieces2 = [ [ (0, 0); (0, 2) ]; [ (1, 0); (1, 2) ] ] in
+  let custom_ship2 = assemble_custom_ship pieces2 2 in
+  assert_equal 2 custom_ship2.id;
+  assert_equal 6 custom_ship2.health;
+  assert_equal (0, 0) custom_ship2.top_left;
+  assert_equal 3 custom_ship2.width;
+  assert_equal 2 custom_ship2.height;
+
+  let pieces3 = [ [ (1, 1); (1, 2) ]; [ (2, 1); (2, 2) ] ] in
+  let custom_ship3 = assemble_custom_ship pieces3 3 in
+  assert_equal 3 custom_ship3.id;
+  assert_equal 4 custom_ship3.health;
+  assert_equal (1, 1) custom_ship3.top_left;
+  assert_equal 2 custom_ship3.width;
+  assert_equal 2 custom_ship3.height;
+
+  let pieces_middle =
+    [
+      [ (0, 0); (0, 1); (0, 2) ];
+      [ (1, 0); (1, 1); (1, 2) ];
+      [ (2, 0); (2, 1); (2, 2) ];
+      [ (3, 0); (3, 1); (3, 2) ];
+      [ (4, 0); (4, 1); (4, 2) ];
+      [ (5, 0); (5, 1); (5, 2) ];
+      [ (6, 0); (6, 1); (6, 2) ];
+      [ (7, 0); (7, 1); (7, 2) ];
+      [ (8, 0); (8, 1); (8, 2) ];
+      [ (9, 0); (9, 1); (9, 2) ];
+    ]
+  in
+  let custom_ship_middle = assemble_custom_ship pieces_middle 4 in
+  assert_equal 4 custom_ship_middle.id;
+  assert_equal 30 custom_ship_middle.health;
+  assert_equal (0, 0) custom_ship_middle.top_left;
+  assert_equal 3 custom_ship_middle.width;
+  assert_equal 10 custom_ship_middle.height
+
+let test_place_custom_ship_success _ =
+  let grid = create_grid 10 in
+  let pieces = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
+  let custom_ship = assemble_custom_ship pieces 1 in
+  assert_bool "Custom ship placement should succeed"
+    (place_custom_ship grid custom_ship (0, 0));
+  List.iter
+    (fun (y, x) -> assert_equal (CustomShip custom_ship) grid.(y).(x))
+    custom_ship.cells
+
+let test_place_custom_ship_failure _ =
+  let grid = create_grid 10 in
+  let pieces = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
+  let custom_ship = assemble_custom_ship pieces 1 in
+  assert_bool "Custom ship placement should fail due to out of bounds"
+    (not (try place_custom_ship grid custom_ship (9, 9) with _ -> false));
+
+  let grid = create_grid 10 in
+  let _ = place_ship grid 1 (0, 0) (0, 4) in
+  assert_bool
+    "Custom ship placement should fail due to overlap with existing ship"
+    (not (try place_custom_ship grid custom_ship (0, 0) with _ -> false));
+
+  let grid = create_grid 10 in
+  let overlapping_pieces = [ [ (0, 0); (0, 1) ]; [ (0, 1); (0, 2) ] ] in
+  let overlapping_ship = assemble_custom_ship overlapping_pieces 1 in
+  assert_bool
+    "Custom ship placement should fail due to overlap within the ship itself"
+    (not (try place_custom_ship grid overlapping_ship (0, 0) with _ -> false));
+
+  let grid = create_grid 10 in
+  let pieces = [ [ (9, 9); (9, 10) ]; [ (10, 9); (10, 10) ] ] in
+  let custom_ship_out_of_bounds = assemble_custom_ship pieces 1 in
+  assert_bool "Custom ship placement should fail due to out of upper bounds"
+    (not
+       (try place_custom_ship grid custom_ship_out_of_bounds (9, 9)
+        with _ -> false));
+
+  let grid = create_grid 10 in
+  let pieces = [ [ (0, 0); (0, -1) ]; [ (-1, 0); (-1, -1) ] ] in
+  let custom_ship_out_of_left_bounds = assemble_custom_ship pieces 1 in
+  assert_bool "Custom ship placement should fail due to out of left bounds"
+    (not
+       (try place_custom_ship grid custom_ship_out_of_left_bounds (0, 0)
+        with _ -> false))
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -602,6 +752,20 @@ let suite =
          "test_ship_overlapping_mine" >:: test_ship_overlapping_mine;
          "test_valid_mine_placement_around_ships"
          >:: test_valid_mine_placement_around_ships;
+         "test_get_bounding_box" >:: test_get_bounding_box;
+         "test_get_bounding_box_horizontal_line"
+         >:: test_get_bounding_box_horizontal_line;
+         "test_get_bounding_box_vertical_line"
+         >:: test_get_bounding_box_vertical_line;
+         "test_get_bounding_box_Lshape" >:: test_get_bounding_box_Lshape;
+         "test_get_bounding_box_point" >:: test_get_bounding_box_point;
+         "test_get_bounding_box_sparse_point"
+         >:: test_get_bounding_box_sparse_point;
+         "test_get_bounding_box_scattered_point"
+         >:: test_get_bounding_box_scattered_point;
+         "test_assemble_custom_ship" >:: test_assemble_custom_ship;
+         "test_place_custom_ship_success" >:: test_place_custom_ship_success;
+         "test_place_custom_ship_failure" >:: test_place_custom_ship_failure;
        ]
 
 let () = run_test_tt_main suite
