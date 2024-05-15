@@ -83,6 +83,15 @@ let place_ship grid ship_id (y1, x1) (y2, x2) =
     end
     else raise InvalidPlacement
 
+let place_mine grid (y, x) =
+  if not (validate_coordinates x y (Array.length grid)) then
+    raise InvalidPlacement
+  else if grid.(y).(x) = Empty then begin
+    grid.(y).(x) <- Mine;
+    true
+  end
+  else raise InvalidPlacement
+
 let shoot grid (y, x) =
   match grid.(y).(x) with
   | Ship id ->
@@ -97,6 +106,15 @@ let shoot grid (y, x) =
       grid.(y).(x) <- Miss;
       "Miss!"
   | Hit _ | Miss | Exploded -> "Already guessed this position!"
+
+let rec mine_shot grid =
+  let grid_size = Array.length grid in
+  let x = Random.int grid_size and y = Random.int grid_size in
+  begin
+    match grid.(y).(x) with
+    | Hit _ | Miss | Exploded -> mine_shot grid
+    | _ -> shoot grid (y, x)
+  end
 
 let next_targets (x, y) grid =
   [ (x + 1, y); (x - 1, y); (x, y + 1); (x, y - 1) ]

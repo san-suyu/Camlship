@@ -14,7 +14,9 @@ exception InvalidInput
 val create_grid : int -> grid
 val print_grid : grid -> bool -> string -> unit
 val place_ship : grid -> int -> int * int -> int * int -> bool
+val place_mine : grid -> int * int -> bool
 val shoot : grid -> int * int -> string
+val mine_shot : grid -> string
 val ai_guess : grid -> string
 val check_game_over : grid -> bool
 val char_to_index : char -> int
