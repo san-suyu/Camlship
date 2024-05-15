@@ -355,6 +355,7 @@ let rec game_loop grid_size =
           else if check_game_over grid1 then game_over ()
           else next_level ()
         end
+        else if input = "Quit" then exit 0
         else
           let y_char = input.[0] in
           let x_substr = String.sub input 1 (String.length input - 1) in
@@ -385,6 +386,8 @@ let rec game_loop grid_size =
             if not (check_game_over grid1 || check_game_over grid2) then (
               let ai_result = ai_guess grid1 in
               Printf.printf "AI's move: %s\n" ai_result;
+              if ai_result = "Mine hit!" then
+                Printf.printf "Mine shot: %s\n" (mine_shot grid2);
               print_grid grid1 true "Player's Grid";
               shoot_phase ())
             else if check_game_over grid1 then game_over ()
