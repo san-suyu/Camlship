@@ -292,21 +292,17 @@ let place_custom_ship grid custom_ship top_left =
 
 let create_custom_ship_from_grid grid =
   let coordinates = ref [] in
-  let min_x = ref max_int and min_y = ref max_int in
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid.(0) - 1 do
       match grid.(y).(x) with
-      | Ship 0 ->
-          coordinates := (y, x) :: !coordinates;
-          if x < !min_x then min_x := x;
-          if y < !min_y then min_y := y
+      | Ship 0 -> coordinates := (y, x) :: !coordinates
       | _ -> ()
     done
   done;
-  let new_coordinates =
-    List.map (fun (y, x) -> (y - !min_y, x - !min_x)) !coordinates
-  in
   let top_left, width, height = calculate_bounding_box !coordinates in
+  let new_coordinates =
+    List.map (fun (y, x) -> (y - fst top_left, x - snd top_left)) !coordinates
+  in
   {
     id = 0;
     cells = new_coordinates;

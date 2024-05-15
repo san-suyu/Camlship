@@ -344,32 +344,13 @@ let rec game_loop grid_size =
           if input = "design" then begin
             let custom = read_coordinates grid1 in
             custom_ship := Some custom;
+            let top_left_y, top_left_x = custom.top_left in
             Printf.printf
-              "Custom ship designed with health %d and coordinates: %s\n"
-              custom.health
-              (String.concat "; "
-                 (List.map
-                    (fun (y, x) -> Printf.sprintf "(%d, %d)" y x)
-                    custom.cells));
-            Printf.printf
-              "Enter the top-left corner to place your custom ship:\n";
-            let top_left_input = read_line () in
-            let top_y = char_to_index top_left_input.[0] in
-            let top_x =
-              int_of_string
-                (String.sub top_left_input 1 (String.length top_left_input - 1))
-              - 1
-            in
-            match !custom_ship with
-            | Some custom ->
-                if place_custom_ship grid1 custom (top_y, top_x) then (
-                  Printf.printf "Custom ship placed successfully.\n";
-                  ship_id := !ship_id + 1)
-                else Printf.printf "Failed to place custom ship.\n";
-                place_ships (count + 1) max_ships
-            | None ->
-                Printf.printf "No custom ship available.\n";
-                place_ships count max_ships
+              "Custom ship designed with health %d, bounding box (%d, %d), and \
+               top-left coordinate: (%d, %d)\n"
+              custom.health custom.width custom.height (top_left_y + 1)
+              (top_left_x + 1);
+            place_ships (count + 1) max_ships
           end
           else
             let inputs = String.split_on_char ' ' input in
