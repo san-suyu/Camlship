@@ -27,29 +27,6 @@ let select_ai_mode () =
 let gold1 = ref 100
 let gold2 = ref 100
 
-(* let create_new_ship grid = let rec add_pieces pieces = Printf.printf "Add a
-   piece (Format: Y1X1 Y2X2, e.g., A1 A2) or type 'done' to finish:\n"; try let
-   input = read_line () in if input = "done" then let id =
-   get_ship_health_length () + 1 in assemble_custom_ship pieces id else let
-   inputs = Str.split (Str.regexp "[ \t]+") input in match inputs with | [
-   start; finish ] -> let start_y_char = start.[0] in let start_x_substr =
-   String.sub start 1 (String.length start - 1) in let y1 = char_to_index
-   start_y_char in let x1 = int_of_string start_x_substr - 1 in let
-   finish_y_char = finish.[0] in let finish_x_substr = String.sub finish 1
-   (String.length finish - 1) in let y2 = char_to_index finish_y_char in let x2
-   = int_of_string finish_x_substr - 1 in if validate_coordinates y1 x1
-   (Array.length grid) && validate_coordinates y2 x2 (Array.length grid) then if
-   place_ship grid (get_ship_health_length () + 1) (y1, x1) (y2, x2) then let
-   new_piece = if y1 = y2 then List.init (abs (x2 - x1) + 1) (fun i -> (y1, x1 +
-   i)) else List.init (abs (y2 - y1) + 1) (fun i -> (y1 + i, x1)) in add_pieces
-   (new_piece :: pieces) else let () = Printf.printf "Invalid placement, try
-   again.\n" in add_pieces pieces else let () = Printf.printf "Coordinates are
-   out of bounds, try again.\n" in add_pieces pieces | _ -> raise (Failure
-   "Invalid input format") with | Scanf.Scan_failure _ | Failure _ ->
-   Printf.printf "Please check your input format and try again.\n"; add_pieces
-   pieces | InvalidPlacement -> Printf.printf "Invalid placement, try again.\n";
-   add_pieces pieces in add_pieces [] *)
-
 let rec game_loop grid_size =
   let bombed_rows1 = ref [] in
   let bombed_columns1 = ref [] in
@@ -61,8 +38,8 @@ let rec game_loop grid_size =
   let grid2 = create_grid grid_size in
   let grid3 = create_grid grid_size in
   random_place_ships grid2;
-  random_place_mines grid2 5;
 
+  (* random_place_mines grid2 5; *)
   let print_powerups () =
     ANSITerminal.printf [ ANSITerminal.yellow ]
       "You currently have %i gold to spend\n" !gold1;
