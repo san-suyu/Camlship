@@ -316,6 +316,73 @@ let test_cell_count _ =
   assert_bool "Counting Miss cells" (1 = count_cell_type count_grid Miss);
   assert_bool "Counting Hit cells" (2 = count_hit_cells count_grid)
 
+let test_overlapping_ships_horizontally_vertically _ =
+  let grid = create_grid 10 in
+  assert_bool "Place horizontal ship" (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Overlap vertically should fail"
+    (not (place_ship grid 2 (0, 4) (3, 4)))
+
+let test_adjacent_ships _ =
+  let grid = create_grid 10 in
+  assert_bool "Place first ship" (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Place adjacent ship vertically" (place_ship grid 2 (1, 0) (1, 4))
+
+let test_firing_at_all_coordinates _ =
+  let grid = create_grid 10 in
+  let _ = place_ship grid 1 (0, 0) (0, 9) in
+  for i = 0 to 9 do
+    for j = 0 to 9 do
+      ignore (shoot grid (i, j))
+    done
+  done;
+  assert_bool "All cells shot at least once" (check_game_over grid)
+
+let test_ai_shoots_all_grid_once _ =
+  let grid = create_grid 10 in
+  set_ai_mode Easy;
+  let all_shots = ref [] in
+  for _ = 1 to 100 do
+    let shot = ai_guess grid in
+    if not (List.mem shot !all_shots) then all_shots := shot :: !all_shots
+  done;
+  assert_equal ~msg:"AI should shoot each cell only once" 100
+    (List.length !all_shots)
+
+let test_game_over_after_all_ships_hit _ =
+  let grid = create_grid 10 in
+  assert_bool "Place ship" (place_ship grid 1 (0, 0) (0, 9));
+  for i = 0 to 9 do
+    ignore (shoot grid (0, i))
+  done;
+  assert_bool "Game should be over after all ships hit" (check_game_over grid)
+
+let test_invalid_ship_placement_at_edges _ =
+  let grid = create_grid 10 in
+  assert_raises InvalidPlacement (fun () ->
+      ignore (place_ship grid 1 (0, 0) (0, 10)))
+
+let test_ship_placement_at_corners _ =
+  let grid = create_grid 10 in
+  assert_bool "Place ship at top-left corner" (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Place ship at bottom-right corner"
+    (place_ship grid 2 (9, 5) (9, 9))
+
+let test_various_ship_sizes _ =
+  let grid = create_grid 10 in
+  for i = 1 to 5 do
+    assert_bool
+      (Printf.sprintf "Place ship size %d" i)
+      (place_ship grid i (i, 0) (i, i - 1))
+  done
+
+let test_reset_game _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 1 (0, 0) (0, 9));
+  ignore (shoot grid (0, 0));
+  let grid_new = create_grid 10 in
+  assert_bool "New grid should not be game over"
+    (not (check_game_over grid_new))
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -352,6 +419,18 @@ let suite =
          "test_square_bomb" >:: test_square_bomb;
          "test_airstrike" >:: test_airstrike;
          "test_cell_count" >:: test_cell_count;
+         "test_overlapping_ships_horizontally_vertically"
+         >:: test_overlapping_ships_horizontally_vertically;
+         "test_adjacent_ships" >:: test_adjacent_ships;
+         "test_firing_at_all_coordinates" >:: test_firing_at_all_coordinates;
+         "test_ai_shoots_all_grid_once" >:: test_ai_shoots_all_grid_once;
+         "test_game_over_after_all_ships_hit"
+         >:: test_game_over_after_all_ships_hit;
+         "test_invalid_ship_placement_at_edges"
+         >:: test_invalid_ship_placement_at_edges;
+         "test_ship_placement_at_corners" >:: test_ship_placement_at_corners;
+         "test_various_ship_sizes" >:: test_various_ship_sizes;
+         "test_reset_game" >:: test_reset_game;
        ]
 
 let () = run_test_tt_main suite
