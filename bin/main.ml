@@ -206,10 +206,18 @@ let rec game_loop grid_size =
           else
             let gold_input = int_of_string_opt airstrike_choice in
             if gold_input = None then
-              let () = Printf.printf "Invalid input, try again\n" in
+              let () =
+                ANSITerminal.printf [ ANSITerminal.red ]
+                  "Invalid input, try again\n"
+              in
               powerups player ()
-            else if gold_input > current_gold then
-              let () = print_endline "You do not have enough gold!\n" in
+            else if
+              gold_input > current_gold || int_of_string airstrike_choice < 25
+            then
+              let () =
+                ANSITerminal.printf [ ANSITerminal.red ]
+                  "You do not have enough gold!\n"
+              in
               powerups player ()
             else
               airstrike grid2
@@ -217,7 +225,7 @@ let rec game_loop grid_size =
                  - Int.rem (int_of_string airstrike_choice) 25)
                 / 25))
         else begin
-          Printf.printf
+          ANSITerminal.printf [ ANSITerminal.red ]
             "Not enough gold to spend!\n\
             \ select another powerup or use 'back' to go back\n";
           powerups player ()
@@ -319,17 +327,24 @@ let rec game_loop grid_size =
             if result = "Hit!" || result = "You sunk a ship!" then
               ANSITerminal.printf [ ANSITerminal.green ] "Result: %s\n" result
             else if result = "Miss!" then
-              ANSITerminal.printf [ ANSITerminal.green ] "Result: %s\n" result;
+              ANSITerminal.printf [ ANSITerminal.yellow ] "Result: %s\n" result
+            else if result = "Already guessed this position!" then
+              ANSITerminal.printf [ ANSITerminal.red ]
+                "Result: %s\n Please choose another coordinate." result;
 
             if result = "Hit!" then gold1 := !gold1 + 50;
-            print_grid grid2 false "Opponent's Grid";
-            if not (check_game_over grid1 || check_game_over grid2) then (
-              let ai_result = ai_guess grid1 in
-              Printf.printf "AI's move: %s\n" ai_result;
-              print_grid grid1 true "Player's Grid";
-              shoot_phase ())
-            else if check_game_over grid1 then game_over ()
-            else next_level ())
+            if result = "Already guessed this position!" then (
+              let () = print_grid grid2 false "Opponent's Grid" in
+              let () = print_grid grid1 true "Player's Grid" in
+              shoot_phase ();
+              print_grid grid2 false "Opponent's Grid";
+              if not (check_game_over grid1 || check_game_over grid2) then (
+                let ai_result = ai_guess grid1 in
+                Printf.printf "AI's move: %s\n" ai_result;
+                print_grid grid1 true "Player's Grid";
+                shoot_phase ())
+              else if check_game_over grid1 then game_over ()
+              else next_level ()))
           else
             ANSITerminal.printf [ ANSITerminal.red ]
               "Coordinates are out of bounds, try again.\n";
