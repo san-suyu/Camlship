@@ -174,12 +174,11 @@ let check_game_over grid =
           row)
       grid
 
-let count_cell_type grid cell =
+let count_cell_type grid (cell : cell) =
   let count = ref 0 in
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid - 1 do
-      match grid.(y).(x) with
-      | cell -> count := !count + 1
+      if cell = grid.(y).(x) then count := !count + 1
     done
   done;
   !count
