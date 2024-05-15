@@ -32,6 +32,7 @@ val char_to_index : char -> int
 val validate_coordinates : int -> int -> int -> bool
 val validate_bomb : int -> int -> int -> bool
 val random_place_ships : grid -> unit
+val random_place_mines : grid -> int -> unit
 
 type ai_mode =
   | Easy

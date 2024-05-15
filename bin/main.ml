@@ -61,6 +61,7 @@ let rec game_loop grid_size =
   let grid2 = create_grid grid_size in
   let grid3 = create_grid grid_size in
   random_place_ships grid2;
+  random_place_mines grid2 5;
 
   let print_powerups () =
     ANSITerminal.printf [ ANSITerminal.yellow ]
@@ -419,6 +420,7 @@ let rec game_loop grid_size =
           else if check_game_over grid1 then game_over ()
           else next_level ()
         end
+        else if input = "Quit" then exit 0
         else
           let y_char = input.[0] in
           let x_substr = String.sub input 1 (String.length input - 1) in
@@ -431,11 +433,16 @@ let rec game_loop grid_size =
               ANSITerminal.printf [ ANSITerminal.green ] "Result: %s\n" result
             else if result = "Miss!" then
               ANSITerminal.printf [ ANSITerminal.yellow ] "Result: %s\n" result
+            else if result = "Mine hit!" then
+              ANSITerminal.printf [ ANSITerminal.red ] "Result: %s\n" result
             else if result = "Already guessed this position!" then
               ANSITerminal.printf [ ANSITerminal.red ]
                 "%s\nPlease choose another coordinate.\n" result;
 
             (if result = "Hit!" then gold1 := !gold1 + 50
+             else if result = "Mine hit!" then
+               let ms = mine_shot grid1 in
+               Printf.printf "Mine shot: %s\n" ms
              else if result = "Already guessed this position!" then
                let () = print_grid grid2 false "Opponent's Grid" in
                let () = print_grid grid1 true "Player's Grid" in
@@ -444,6 +451,8 @@ let rec game_loop grid_size =
             if not (check_game_over grid1 || check_game_over grid2) then (
               let ai_result = ai_guess grid1 in
               Printf.printf "AI's move: %s\n" ai_result;
+              if ai_result = "Mine hit!" then
+                Printf.printf "Mine shot: %s\n" (mine_shot grid2);
               print_grid grid1 true "Player's Grid";
               shoot_phase ())
             else if check_game_over grid1 then game_over ()
@@ -584,10 +593,12 @@ let rec game_loop grid_size =
     and duo_shoot_phase player () =
       let gold = if player mod 2 = 0 then gold2 else gold1 in
       let grid = if player mod 2 = 0 then grid1 else grid3 in
+      let my_grid = if player mod 2 = 0 then grid3 else grid1 in
       let player_no = if player mod 2 = 0 then 2 else 1 in
       ANSITerminal.printf [ ANSITerminal.magenta ]
         "It is currently Player %i 's turn\n" player_no;
-      Printf.printf "You currently have %i gold\n" !gold;
+      ANSITerminal.printf [ ANSITerminal.yellow ] "You currently have %i gold\n"
+        !gold;
       Printf.printf "Enter coordinates to shoot at (Format: Y X, e.g., B3):\n";
       Printf.printf "or enter 'Powerup' to use a powerup:";
       try
@@ -615,6 +626,7 @@ let rec game_loop grid_size =
           else if check_game_over grid then duo_game_over 2 ()
           else duo_game_over 1 ()
         end
+        else if input = "Quit" then exit 0
         else
           let y_char = input.[0] in
           let x_substr = String.sub input 1 (String.length input - 1) in
@@ -625,10 +637,18 @@ let rec game_loop grid_size =
 
             if result = "Hit!" || result = "You sunk a ship!" then
               ANSITerminal.printf [ ANSITerminal.green ] "Result: %s\n" result
+            else if result = "Mine hit!" then
+              ANSITerminal.printf [ ANSITerminal.red ] "Result: %s\n" result
             else if result = "Miss!" then
-              ANSITerminal.printf [ ANSITerminal.green ] "Result: %s\n" result;
+              ANSITerminal.printf [ ANSITerminal.yellow ] "Result: %s\n" result;
 
-            if result = "Hit!" then gold := !gold + 50;
+            (if result = "Hit!" then gold := !gold + 50
+             else if result = "Mine hit!" then
+               let ms = mine_shot my_grid in
+               Printf.printf "Mine shot: %s\n" ms);
+            Printf.printf "Press enter to continue\n";
+            (let cont = read_line () in
+             if cont = "Quit" then exit 0 else Printf.printf "");
             if not (check_game_over grid1 || check_game_over grid3) then
               if player_no = 1 then begin
                 ANSITerminal.erase Above;

@@ -99,7 +99,7 @@ let place_mine grid (y, x) =
     grid.(y).(x) <- Mine;
     true
   end
-  else raise InvalidPlacement
+  else false
 
 let shoot grid (y, x) =
   match grid.(y).(x) with
@@ -194,6 +194,13 @@ let random_place_ships grid =
         with InvalidPlacement -> ()
       done)
     ship_sizes
+
+let rec random_place_mines grid count =
+  if count > 0 then
+    let grid_size = Array.length grid in
+    let x = Random.int grid_size and y = Random.int grid_size in
+    if place_mine grid (x, y) then random_place_mines grid (count - 1)
+    else random_place_mines grid count
 
 let check_game_over grid =
   let all_empty = ref true in
