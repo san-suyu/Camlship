@@ -201,7 +201,7 @@ let rec game_loop grid_size =
           else if column_choice = "Quit" then exit 0
           else
             try
-              let x = int_of_string column_choice in
+              let x = int_of_string column_choice - 1 in
               if List.mem x !bombed_columns then begin
                 Printf.printf "Already bombed that column!\n";
                 powerups player ()
