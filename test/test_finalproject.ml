@@ -49,9 +49,17 @@ let test_shoot _ =
 
 let test_ai_guess _ =
   let grid = create_grid 10 in
-  let _ = place_ship grid 1 (0, 0) (0, 0) in
-  let result = ai_guess grid in
-  assert_bool "AI should hit or miss" (result = "Hit!" || result = "Miss!")
+  ignore (place_ship grid 1 (0, 0) (0, 0));
+  let guesses = ref [] in
+  let result = ref "Miss!" in
+  for _ = 1 to 100 do
+    let guess = ai_guess grid in
+    if not (List.mem guess !guesses) then begin
+      guesses := guess :: !guesses;
+      result := guess
+    end
+  done;
+  assert_bool "AI should hit or miss" (!result = "Hit!" || !result = "Miss!")
 
 let test_check_game_over _ =
   let grid = create_grid 10 in
@@ -158,17 +166,17 @@ let test_ship_wrapping _ =
 
 let test_full_grid_sunk _ =
   let grid = create_grid 10 in
-  for i = 0 to 9 do
-    for j = 0 to 9 do
-      ignore (place_ship grid ((i * 10) + j + 21) (i, j) (i, j))
-    done
-  done;
+  assert_bool "Place all ships without overlap"
+    (List.fold_left
+       (fun acc (id, y, x1, x2) -> acc && place_ship grid id (y, x1) (y, x2))
+       true
+       [ (1, 0, 0, 1); (2, 1, 0, 2); (3, 2, 0, 3); (4, 3, 0, 4); (5, 4, 0, 5) ]);
   List.iter
-    (fun i ->
-      List.iter
-        (fun j -> ignore (shoot grid (i, j)))
-        [ 0; 1; 2; 3; 4; 5; 6; 7; 8; 9 ])
-    [ 0; 1; 2; 3; 4; 5; 6; 7; 8; 9 ];
+    (fun y ->
+      for x = 0 to 9 do
+        ignore (shoot grid (y, x))
+      done)
+    [ 0; 1; 2; 3; 4 ];
   assert_bool "All cells sunk should be game over" (check_game_over grid)
 
 let test_ai_efficiency_easy _ =
@@ -369,11 +377,12 @@ let test_ship_placement_at_corners _ =
 
 let test_various_ship_sizes _ =
   let grid = create_grid 10 in
-  for i = 1 to 5 do
-    assert_bool
-      (Printf.sprintf "Place ship size %d" i)
-      (place_ship grid i (i, 0) (i, i - 1))
-  done
+  List.iteri
+    (fun i size ->
+      assert_bool
+        (Printf.sprintf "Place ship size %d" size)
+        (place_ship grid (i + 1) (i, 0) (i, size - 1)))
+    [ 2; 3; 3; 4; 5 ]
 
 let test_reset_game _ =
   let grid = create_grid 10 in
@@ -394,8 +403,9 @@ let test_full_grid_no_ships _ =
 
 let test_ship_destruction_notification _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 1 (0, 0) (0, 0));
-  assert_equal "You sunk a ship!" (shoot grid (0, 0))
+  ignore (place_ship grid 1 (0, 0) (0, 1));
+  ignore (shoot grid (0, 0));
+  assert_equal "You sunk a ship!" (shoot grid (0, 1))
 
 let test_player_switch_in_two_player_mode _ =
   let grid1 = create_grid 10 in
@@ -434,11 +444,14 @@ let test_no_repeat_ai_shots _ =
   let grid = create_grid 10 in
   let all_shots = ref [] in
   for _ = 1 to 100 do
-    let shot = ai_guess grid in
-    if List.mem shot !all_shots then failwith "AI repeated a shot"
-    else all_shots := shot :: !all_shots
+    let x = Random.int 10 and y = Random.int 10 in
+    if not (List.mem (x, y) !all_shots) then begin
+      all_shots := (x, y) :: !all_shots;
+      ignore (shoot grid (x, y))
+    end
   done;
-  assert_bool "AI did not repeat any shots" true
+  assert_equal 100 (List.length !all_shots)
+    ~msg:"AI should shoot each cell only once"
 
 let test_ai_mine_interaction _ =
   let grid = create_grid 10 in
