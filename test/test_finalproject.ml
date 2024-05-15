@@ -766,6 +766,7 @@ let suite =
          "test_assemble_custom_ship" >:: test_assemble_custom_ship;
          "test_place_custom_ship_success" >:: test_place_custom_ship_success;
          "test_place_custom_ship_failure" >:: test_place_custom_ship_failure;
+         "test_assemble_custom_ship_id" >:: test_assemble_custom_ship_id;
        ]
 
 let () = run_test_tt_main suite
