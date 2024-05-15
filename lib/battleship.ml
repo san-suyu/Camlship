@@ -106,24 +106,26 @@ let place_mine grid (y, x) =
   else false
 
 let shoot grid (y, x) =
-  match grid.(y).(x) with
-  | Ship id ->
-      grid.(y).(x) <- Hit id;
-      let health = Hashtbl.find ship_health id - 1 in
-      Hashtbl.replace ship_health id health;
-      if health = 0 then "You sunk a ship!" else "Hit!"
-  | Mine ->
-      grid.(y).(x) <- Exploded;
-      "Mine hit!"
-  | CustomShip custom_ship ->
-      grid.(y).(x) <- HitCustom custom_ship;
-      let health = custom_ship.health - 1 in
-      Hashtbl.replace ship_health custom_ship.id health;
-      if health = 0 then "You sunk a custom ship!" else "Hit!"
-  | Empty ->
-      grid.(y).(x) <- Miss;
-      "Miss!"
-  | Hit _ | Miss | Exploded | HitCustom _ -> "Already guessed this position!"
+  if not (validate_coordinates x y (Array.length grid)) then raise InvalidInput
+  else
+    match grid.(y).(x) with
+    | Ship id ->
+        grid.(y).(x) <- Hit id;
+        let health = Hashtbl.find ship_health id - 1 in
+        Hashtbl.replace ship_health id health;
+        if health = 0 then "You sunk a ship!" else "Hit!"
+    | Mine ->
+        grid.(y).(x) <- Exploded;
+        "Mine hit!"
+    | CustomShip custom_ship ->
+        grid.(y).(x) <- HitCustom custom_ship;
+        let health = custom_ship.health - 1 in
+        Hashtbl.replace ship_health custom_ship.id health;
+        if health = 0 then "You sunk a custom ship!" else "Hit!"
+    | Empty ->
+        grid.(y).(x) <- Miss;
+        "Miss!"
+    | Hit _ | Miss | Exploded | HitCustom _ -> "Already guessed this position!"
 
 let rec mine_shot grid =
   let grid_size = Array.length grid in

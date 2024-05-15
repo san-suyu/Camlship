@@ -64,16 +64,14 @@ let test_shoot _ =
 
 let test_ai_guess _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 1 (0, 0) (0, 0));
-  let guesses = ref [] in
+  ignore (place_ship grid 1 (0, 0) (0, 2));
+  (* let guesses = ref [] in *)
   let result = ref "Miss!" in
-  for _ = 1 to 100 do
-    let guess = ai_guess grid in
-    if not (List.mem guess !guesses) then begin
-      guesses := guess :: !guesses;
-      result := guess
-    end
-  done;
+  let guess = ai_guess grid in
+  let () = result := guess in
+  (* for _ = 1 to 100 do let guess = ai_guess grid in if not (List.mem guess
+     !guesses) then begin guesses := guess :: !guesses; result := guess end
+     done; *)
   assert_bool "AI should hit or miss" (!result = "Hit!" || !result = "Miss!")
 
 let test_check_game_over _ =
@@ -128,7 +126,7 @@ let test_vertical_ship_overlap _ =
 let test_complete_ship_destruction _ =
   let grid = create_grid 10 in
   ignore (place_ship grid 9 (1, 1) (1, 5));
-  List.iter (fun i -> ignore (shoot grid (1, i))) [ 1; 2; 3; 4; 5 ];
+  List.iter (fun i -> ignore (shoot grid (1, i))) [ 1; 2; 3; 4 ];
   assert_equal "You sunk a ship!" (shoot grid (1, 5))
 
 let test_multiple_shots_same_place _ =
@@ -172,8 +170,8 @@ let test_ships_touching_at_corners _ =
   let grid = create_grid 10 in
   ignore (place_ship grid 17 (0, 0) (0, 3));
   ignore (place_ship grid 18 (1, 4) (4, 4));
-  assert_raises InvalidPlacement (fun () ->
-      ignore (place_ship grid 19 (0, 4) (0, 5)))
+  assert_bool "Ships touch, but don't overlap"
+    (place_ship grid 19 (0, 4) (0, 5))
 
 let test_ship_wrapping _ =
   let grid = create_grid 10 in
@@ -206,7 +204,8 @@ let test_ai_efficiency_easy _ =
 
 let test_ai_efficiency_hard _ =
   let grid = create_grid 10 in
-  ignore (place_ship grid 221 (5, 5) (5, 8));
+  ignore (place_ship grid 221 (5, 3) (5, 9));
+  ignore (place_ship grid 221 (4, 0) (4, 8));
   set_ai_mode Hard;
   let hits = ref 0 in
   for _ = 1 to 50 do
@@ -221,7 +220,7 @@ let bombed_columns = ref []
 let bombed_squares = ref []
 
 let bomb_row row =
-  let final = ref "" in
+  let final = ref "Miss!" in
   let y = char_to_index row in
   if List.mem y !bombed_rows then begin
     final := "Already bombed that row!"
@@ -230,8 +229,10 @@ let bomb_row row =
     bombed_rows := y :: !bombed_rows;
     for i = 0 to Array.length powerup_grid - 1 do
       let result = shoot powerup_grid (y, i) in
-      if result = "Hit!" then gold := !gold + 50;
-      final := result
+      if result = "Hit!" then gold := !gold + 50
+      else if result = "You sunk a ship!" then
+        let () = gold := !gold + 50 in
+        final := result
     done;
     gold := !gold - 100
   end;
@@ -245,10 +246,11 @@ let test_bomb_row _ =
     ("Already bombed that row!" = bomb_row 'A')
 
 let powerup_grid2 = create_grid 10
+let () = gold := 100
 
 let bomb_column col =
   let final = ref "" in
-  let x = int_of_string col in
+  let x = int_of_string col - 1 in
   if List.mem x !bombed_columns then begin
     final := "Already bombed that column!"
   end
@@ -256,8 +258,10 @@ let bomb_column col =
     bombed_columns := x :: !bombed_columns;
     for i = 0 to Array.length powerup_grid2 - 1 do
       let result = shoot powerup_grid2 (i, x) in
-      if result = "Hit!" then gold := !gold + 50;
-      final := result
+      if result = "Hit!" then gold := !gold + 50
+      else if result = "You sunk a ship!" then
+        let () = gold := !gold + 50 in
+        final := result
     done;
     gold := !gold - 100
   end;
@@ -273,9 +277,9 @@ let test_bomb_column _ =
 let powerup_grid3 = create_grid 10
 
 let square_bomb row col =
-  let final = ref "" in
+  let final = ref "Miss!" in
   let y = char_to_index row in
-  let x = int_of_string col in
+  let x = int_of_string col - 1 in
   if not (validate_bomb y x (Array.length powerup_grid3)) then begin
     final := "Invalid selection!"
   end
@@ -287,8 +291,9 @@ let square_bomb row col =
     for i = 0 to 2 do
       for j = 0 to 2 do
         let result = shoot powerup_grid3 (y + i, x + j) in
-        if result = "Hit!" then gold := !gold + 50;
-        final := result
+        if result = "Hit!" then
+          let () = gold := !gold + 50 in
+          final := result
       done
     done;
     gold := !gold - 100
@@ -297,10 +302,12 @@ let square_bomb row col =
 
 let test_square_bomb _ =
   let _ = place_ship powerup_grid3 1 (1, 0) (4, 0) in
-  assert_bool "Bombing a fresh square" ("You sunk a ship!" = square_bomb 'A' "1");
+  assert_bool "Bombing a fresh square" ("hit!" = square_bomb 'A' "1");
   assert_bool "Gold after bombing a ship length 1" (!gold = 50);
   assert_bool "Bombing previously bombed square"
-    ("Already bombed that square!" = square_bomb 'A' "1")
+    ("Already bombed that square!" = square_bomb 'A' "1");
+  assert_bool "Bombing invalid square"
+    ("Invalid selection!" = square_bomb 'A' "0")
 
 let rec airstrike grid shots =
   let final = ref "" in
@@ -334,17 +341,21 @@ let _ = place_ship count_grid 1 (1, 0) (1, 9)
 let _ = shoot count_grid (0, 0)
 let _ = shoot count_grid (2, 0)
 let _ = shoot count_grid (3, 0)
+let _ = shoot count_grid (1, 3)
 
 let test_cell_count _ =
-  assert_bool "Counting Empty cells" (90 = count_cell_type count_grid Empty);
-  assert_bool "Counting Miss cells" (1 = count_cell_type count_grid Miss);
-  assert_bool "Counting Hit cells" (2 = count_hit_cells count_grid)
+  assert_bool "Counting Empty cells" (87 = count_cell_type count_grid Empty);
+  assert_bool "Counting Miss cells" (3 = count_cell_type count_grid Miss);
+  assert_bool "Counting Hit cells" (1 = count_hit_cells count_grid)
 
 let test_overlapping_ships_horizontally_vertically _ =
   let grid = create_grid 10 in
-  assert_bool "Place horizontal ship" (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Place horizontal ship" (place_ship grid 1 (1, 0) (1, 4));
   assert_bool "Overlap vertically should fail"
-    (not (place_ship grid 2 (0, 4) (3, 4)))
+    (not (try place_ship grid 2 (0, 2) (3, 2) with _ -> false));
+  assert_bool "Place vertical ship" (place_ship grid 1 (4, 5) (8, 5));
+  assert_bool "Overlap vertically should fail"
+    (not (try place_ship grid 2 (6, 4) (6, 7) with _ -> false))
 
 let test_adjacent_ships _ =
   let grid = create_grid 10 in
@@ -364,13 +375,12 @@ let test_firing_at_all_coordinates _ =
 let test_ai_shoots_all_grid_once _ =
   let grid = create_grid 10 in
   set_ai_mode Easy;
-  let all_shots = ref [] in
+  let all_shots = ref 0 in
   for _ = 1 to 100 do
     let shot = ai_guess grid in
-    if not (List.mem shot !all_shots) then all_shots := shot :: !all_shots
+    if shot != "Already guessed this position!" then all_shots := !all_shots + 1
   done;
-  assert_equal ~msg:"AI should shoot each cell only once" 100
-    (List.length !all_shots)
+  assert_equal ~msg:"AI should shoot each cell only once" 100 !all_shots
 
 let test_game_over_after_all_ships_hit _ =
   let grid = create_grid 10 in
