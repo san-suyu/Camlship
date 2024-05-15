@@ -383,6 +383,27 @@ let test_reset_game _ =
   assert_bool "New grid should not be game over"
     (not (check_game_over grid_new))
 
+let test_shooting_beyond_grid_boundaries _ =
+  let grid = create_grid 10 in
+  assert_raises InvalidInput (fun () -> shoot grid (10, 10))
+
+let test_full_grid_no_ships _ =
+  let grid = create_grid 10 in
+  assert_bool "Game should not be over with no ships"
+    (not (check_game_over grid))
+
+let test_ship_destruction_notification _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 1 (0, 0) (0, 0));
+  assert_equal "You sunk a ship!" (shoot grid (0, 0))
+
+let test_player_switch_in_two_player_mode _ =
+  let grid1 = create_grid 10 in
+  let grid2 = create_grid 10 in
+  ignore (place_ship grid1 1 (0, 0) (0, 4));
+  ignore (shoot grid1 (0, 0));
+  assert_equal Empty grid2.(0).(0)
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -431,6 +452,13 @@ let suite =
          "test_ship_placement_at_corners" >:: test_ship_placement_at_corners;
          "test_various_ship_sizes" >:: test_various_ship_sizes;
          "test_reset_game" >:: test_reset_game;
+         "test_shooting_beyond_grid_boundaries"
+         >:: test_shooting_beyond_grid_boundaries;
+         "test_full_grid_no_ships" >:: test_full_grid_no_ships;
+         "test_ship_destruction_notification"
+         >:: test_ship_destruction_notification;
+         "test_player_switch_in_two_player_mode"
+         >:: test_player_switch_in_two_player_mode;
        ]
 
 let () = run_test_tt_main suite
