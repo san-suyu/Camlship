@@ -1,7 +1,9 @@
 type cell =
   | Empty
   | Ship of int
+  | Mine
   | Hit of int
+  | Exploded
   | Miss
 
 type grid = cell array array
@@ -38,7 +40,9 @@ let print_grid grid show_ships title =
         match grid.(y).(x) with
         | Empty -> '.'
         | Ship _ -> if show_ships then '#' else '.'
+        | Mine -> if show_ships then 'M' else '.'
         | Hit _ -> 'X'
+        | Exploded -> 'm'
         | Miss -> 'O'
       in
       Printf.printf "%c  " cell_repr
@@ -86,10 +90,13 @@ let shoot grid (y, x) =
       let health = Hashtbl.find ship_health id - 1 in
       Hashtbl.replace ship_health id health;
       if health = 0 then "You sunk a ship!" else "Hit!"
+  | Mine ->
+      grid.(y).(x) <- Exploded;
+      "Mine hit!"
   | Empty ->
       grid.(y).(x) <- Miss;
       "Miss!"
-  | Hit _ | Miss -> "Already guessed this position!"
+  | Hit _ | Miss | Exploded -> "Already guessed this position!"
 
 let next_targets (x, y) grid =
   [ (x + 1, y); (x - 1, y); (x, y + 1); (x, y - 1) ]
@@ -98,7 +105,7 @@ let next_targets (x, y) grid =
   |> List.filter (fun (nx, ny) ->
          match grid.(ny).(nx) with
          | Empty | Ship _ -> true
-         | Hit _ | Miss -> false)
+         | Hit _ | Miss | Mine | Exploded -> false)
 
 let rec ai_guess grid =
   match (!ai_mode, !ai_memory) with
@@ -107,7 +114,7 @@ let rec ai_guess grid =
       let x = Random.int grid_size and y = Random.int grid_size in
       begin
         match grid.(y).(x) with
-        | Hit _ | Miss -> ai_guess grid
+        | Hit _ | Miss | Exploded -> ai_guess grid
         | _ -> shoot grid (y, x)
       end
   | Hard, Searching ->
@@ -115,7 +122,7 @@ let rec ai_guess grid =
       let x = Random.int grid_size and y = Random.int grid_size in
       begin
         match grid.(y).(x) with
-        | Hit _ | Miss -> ai_guess grid
+        | Hit _ | Miss | Exploded -> ai_guess grid
         | _ ->
             let result = shoot grid (y, x) in
             if result = "Hit!" then

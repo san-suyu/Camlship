@@ -1,7 +1,9 @@
 type cell =
   | Empty
   | Ship of int
+  | Mine
   | Hit of int
+  | Exploded
   | Miss
 
 type grid = cell array array
