@@ -3,6 +3,8 @@ type custom_ship = {
   cells : (int * int) list;
   health : int;
   top_left : int * int;
+  width : int;
+  height : int;
 }
 
 type cell =
@@ -240,16 +242,26 @@ let count_hit_cells grid =
   done;
   !count
 
-let calculate_top_left cells =
-  List.fold_left
-    (fun (min_y, min_x) (y, x) -> (min min_y y, min min_x x))
-    (max_int, max_int) cells
+let calculate_bounding_box coordinates =
+  let min_x = ref max_int and min_y = ref max_int in
+  let max_x = ref min_int and max_y = ref min_int in
+  List.iter
+    (fun (y, x) ->
+      if x < !min_x then min_x := x;
+      if y < !min_y then min_y := y;
+      if x > !max_x then max_x := x;
+      if y > !max_y then max_y := y)
+    coordinates;
+  let top_left = (!min_y, !min_x) in
+  let width = !max_x - !min_x + 1 in
+  let height = !max_y - !min_y + 1 in
+  (top_left, width, height)
 
 let assemble_custom_ship pieces id =
   let cells = List.flatten pieces in
+  let top_left, width, height = calculate_bounding_box cells in
   let health = List.length cells in
-  let top_left = calculate_top_left cells in
-  { id; cells; health; top_left }
+  { id; cells; health; top_left; width; height }
 
 let place_custom_ship grid custom_ship top_left =
   let offset_cells =
@@ -280,61 +292,28 @@ let place_custom_ship grid custom_ship top_left =
 
 let create_custom_ship_from_grid grid =
   let coordinates = ref [] in
-  let health = ref 0 in
   let min_x = ref max_int and min_y = ref max_int in
-  let max_x = ref min_int and max_y = ref min_int in
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid.(0) - 1 do
       match grid.(y).(x) with
-      | Ship _ ->
+      | Ship 0 ->
           coordinates := (y, x) :: !coordinates;
-          health := !health + 1;
           if x < !min_x then min_x := x;
-          if y < !min_y then min_y := y;
-          if x > !max_x then max_x := x;
-          if y > !max_y then max_y := y
+          if y < !min_y then min_y := y
       | _ -> ()
     done
   done;
   let new_coordinates =
     List.map (fun (y, x) -> (y - !min_y, x - !min_x)) !coordinates
   in
+  let top_left, width, height = calculate_bounding_box !coordinates in
   {
     id = 0;
     cells = new_coordinates;
-    health = !health;
-    top_left = (!min_y, !min_x);
+    health = List.length !coordinates;
+    top_left;
+    width;
+    height;
   }
-
-let rec read_coordinates grid =
-  Printf.printf
-    "Enter coordinates for the ship (Format: YX YX, e.g., A1 A2) or type \
-     'done' to finish:\n";
-  match String.lowercase_ascii (read_line ()) with
-  | "done" -> create_custom_ship_from_grid grid
-  | input ->
-      let inputs = String.split_on_char ' ' input in
-      let rec process_coords = function
-        | [] -> ()
-        | coord :: rest -> (
-            try
-              let y = char_to_index coord.[0] in
-              let x =
-                int_of_string (String.sub coord 1 (String.length coord - 1)) - 1
-              in
-              if validate_coordinates y x (Array.length grid) then (
-                grid.(y).(x) <- Ship 0;
-                (* Use ship_id = 0 for custom ship pieces *)
-                process_coords rest)
-              else (
-                Printf.printf "Invalid coordinates, try again.\n";
-                process_coords rest)
-            with _ ->
-              Printf.printf "Invalid input format, try again.\n";
-              process_coords rest)
-      in
-      process_coords inputs;
-      print_grid grid true "Custom Ship Design";
-      read_coordinates grid
 
 let get_ship_health_length () = Hashtbl.length ship_health

@@ -3,6 +3,8 @@ type custom_ship = {
   cells : (int * int) list;
   health : int;
   top_left : int * int;
+  width : int;
+  height : int;
 }
 
 type cell =
@@ -42,9 +44,10 @@ val set_ai_mode : ai_mode -> unit
 val get_ai_mode : unit -> ai_mode
 val count_cell_type : grid -> cell -> int
 val count_hit_cells : grid -> int
-val calculate_top_left : (int * int) list -> int * int
+
+(* val calculate_top_left : (int * int) list -> int * int *)
 val assemble_custom_ship : (int * int) list list -> int -> custom_ship
 val place_custom_ship : grid -> custom_ship -> int * int -> bool
-val create_custom_ship_from_grid : grid -> custom_ship
-val read_coordinates : grid -> custom_ship
 val get_ship_health_length : unit -> int
+val calculate_bounding_box : (int * int) list -> (int * int) * int * int
+val create_custom_ship_from_grid : grid -> custom_ship

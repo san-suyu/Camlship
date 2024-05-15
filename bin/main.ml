@@ -1,8 +1,8 @@
 open Battleship
 
 let mode = ref 0
-let ship_id = ref 0 (* To keep track of ship IDs *)
-let custom_ship = ref None (* To store the custom ship *)
+let ship_id = ref 0
+let custom_ship = ref None
 
 let select_ai_mode () =
   Printf.printf
@@ -23,6 +23,60 @@ let select_ai_mode () =
       Printf.printf "Invalid selection. Defaulting to Easy mode.\n";
       set_ai_mode Easy;
       mode := !mode + 1
+
+let rec read_coordinates grid =
+  Printf.printf
+    "Enter coordinates for the ship (Format: YX YX, e.g., A1 A2) or type \
+     'done' to finish:\n";
+  match String.lowercase_ascii (read_line ()) with
+  | "done" -> create_custom_ship_from_grid grid
+  | input ->
+      let inputs = String.split_on_char ' ' input in
+      let rec process_coords = function
+        | [] -> ()
+        | coord1 :: coord2 :: rest -> (
+            try
+              let parse_coord coord =
+                let y = char_to_index coord.[0] in
+                let x =
+                  int_of_string (String.sub coord 1 (String.length coord - 1))
+                  - 1
+                in
+                (y, x)
+              in
+              let y1, x1 = parse_coord coord1 in
+              let y2, x2 = parse_coord coord2 in
+              if
+                validate_coordinates y1 x1 (Array.length grid)
+                && validate_coordinates y2 x2 (Array.length grid)
+              then (
+                let add_piece y x = grid.(y).(x) <- Ship 0 in
+                if y1 = y2 then
+                  for x = min x1 x2 to max x1 x2 do
+                    add_piece y1 x
+                  done
+                else if x1 = x2 then
+                  for y = min y1 y2 to max y1 y2 do
+                    add_piece y x1
+                  done
+                else raise InvalidPlacement;
+                process_coords rest)
+              else (
+                Printf.printf "Invalid coordinates, try again.\n";
+                let _ = read_line () in
+                process_coords rest)
+            with _ ->
+              Printf.printf "Invalid input format, try again.\n";
+              let _ = read_line () in
+              process_coords rest)
+        | _ ->
+            Printf.printf "Please provide start and end coordinates.\n";
+            let _ = read_line () in
+            process_coords inputs
+      in
+      process_coords inputs;
+      print_grid grid true "Custom Ship Design";
+      read_coordinates grid
 
 let gold1 = ref 100
 let gold2 = ref 100
