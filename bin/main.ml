@@ -1,3 +1,6 @@
+(* @authors Conner Smith (css289), Aidan Lee (abl88), Kira Pinkney (kjp76),
+   Lindsay Chong (lyc28), Xiaoxin Li (xl432) *)
+
 open Battleship
 
 let mode = ref 0
