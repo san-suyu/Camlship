@@ -516,7 +516,7 @@ let rec game_loop grid_size =
         shoot_phase ()
     in
 
-    place_ships 0 1
+    place_ships 0 5
   end
   else begin
     let rec player1 count max_ships =

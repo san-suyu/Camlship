@@ -74,6 +74,8 @@ let is_valid_placement (y1, x1) (y2, x2) =
 let ship_health = Hashtbl.create 10
 
 let place_ship grid ship_id (y1, x1) (y2, x2) =
+  let y1, y2 = if y1 <= y2 then (y1, y2) else (y2, y1) in
+  let x1, x2 = if x1 <= x2 then (x1, x2) else (x2, x1) in
   if
     (not (validate_coordinates x1 y1 (Array.length grid)))
     || not (validate_coordinates x2 y2 (Array.length grid))

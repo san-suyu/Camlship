@@ -32,6 +32,21 @@ let test_place_ship_success _ =
     assert_equal (Ship 2) grid.(y).(2)
   done
 
+let test_place_ship_max_min _ =
+  let grid = create_grid 10 in
+  assert_bool "Placement with reverse order coordinates should succeed"
+    (place_ship grid 1 (3, 7) (3, 3));
+  for x = 3 to 7 do
+    assert_equal (Ship 1) grid.(3).(x)
+  done;
+  assert_bool "Vertical placement with reverse order coordinates should succeed"
+    (place_ship grid 2 (8, 5) (4, 5));
+  for y = 4 to 8 do
+    assert_equal (Ship 2) grid.(y).(5)
+  done;
+  assert_bool "Overlap placement should fail"
+    (not (try place_ship grid 3 (3, 5) (3, 9) with _ -> false))
+
 let test_place_ship_failures _ =
   let grid = create_grid 10 in
   let _ = place_ship grid 1 (0, 0) (0, 4) in
@@ -681,6 +696,7 @@ let suite =
          "test_create_grid" >:: test_create_grid;
          "test_print_grid" >:: test_print_grid;
          "test_place_ship_success" >:: test_place_ship_success;
+         "test_place_ship_max_min" >:: test_place_ship_max_min;
          "test_place_ship_failures" >:: test_place_ship_failures;
          "test_shoot" >:: test_shoot;
          "test_ai_guess" >:: test_ai_guess;
