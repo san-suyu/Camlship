@@ -404,6 +404,48 @@ let test_player_switch_in_two_player_mode _ =
   ignore (shoot grid1 (0, 0));
   assert_equal Empty grid2.(0).(0)
 
+let test_mine_placement_success _ =
+  let grid = create_grid 10 in
+  assert_bool "Mine placed successfully" (place_mine grid (1, 1))
+
+let test_mine_placement_failure _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 1 (1, 1) (1, 5));
+  assert_raises InvalidPlacement (fun () -> place_mine grid (1, 1))
+
+let test_shooting_mine _ =
+  let grid = create_grid 10 in
+  ignore (place_mine grid (1, 1));
+  assert_equal "Mine hit!" (shoot grid (1, 1))
+
+let test_multiple_mines _ =
+  let grid = create_grid 10 in
+  ignore (place_mine grid (1, 1));
+  ignore (place_mine grid (1, 2));
+  ignore (shoot grid (1, 1));
+  assert_equal "Mine hit!" (shoot grid (1, 2))
+
+let test_ship_and_mine_coexistence _ =
+  let grid = create_grid 10 in
+  ignore (place_ship grid 1 (0, 0) (0, 4));
+  assert_bool "Mine placed next to ship" (place_mine grid (1, 1))
+
+let test_no_repeat_ai_shots _ =
+  let grid = create_grid 10 in
+  let all_shots = ref [] in
+  for _ = 1 to 100 do
+    let shot = ai_guess grid in
+    if List.mem shot !all_shots then failwith "AI repeated a shot"
+    else all_shots := shot :: !all_shots
+  done;
+  assert_bool "AI did not repeat any shots" true
+
+let test_ai_mine_interaction _ =
+  let grid = create_grid 10 in
+  ignore (place_mine grid (1, 1));
+  set_ai_mode Hard;
+  assert_equal "Mine hit!" (ai_guess grid)
+
 let suite =
   "Battleship Test Suite"
   >::: [
@@ -459,6 +501,13 @@ let suite =
          >:: test_ship_destruction_notification;
          "test_player_switch_in_two_player_mode"
          >:: test_player_switch_in_two_player_mode;
+         "test_mine_placement_success" >:: test_mine_placement_success;
+         "test_mine_placement_failure" >:: test_mine_placement_failure;
+         "test_shooting_mine" >:: test_shooting_mine;
+         "test_multiple_mines" >:: test_multiple_mines;
+         "test_ship_and_mine_coexistence" >:: test_ship_and_mine_coexistence;
+         "test_no_repeat_ai_shots" >:: test_no_repeat_ai_shots;
+         "test_ai_mine_interaction" >:: test_ai_mine_interaction;
        ]
 
 let () = run_test_tt_main suite
