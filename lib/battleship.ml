@@ -1,3 +1,10 @@
+type custom_ship = {
+  id : int;
+  cells : (int * int) list;
+  health : int;
+  top_left : int * int;
+}
+
 type cell =
   | Empty
   | Ship of int
@@ -5,6 +12,8 @@ type cell =
   | Hit of int
   | Exploded
   | Miss
+  | CustomShip of custom_ship
+  | HitCustom of custom_ship
 
 type grid = cell array array
 
@@ -39,9 +48,9 @@ let print_grid grid show_ships title =
       let cell_repr =
         match grid.(y).(x) with
         | Empty -> '.'
-        | Ship _ -> if show_ships then '#' else '.'
+        | Ship _ | CustomShip _ -> if show_ships then '#' else '.'
         | Mine -> if show_ships then 'M' else '.'
-        | Hit _ -> 'X'
+        | Hit _ | HitCustom _ -> 'X'
         | Exploded -> 'm'
         | Miss -> 'O'
       in
@@ -102,10 +111,15 @@ let shoot grid (y, x) =
   | Mine ->
       grid.(y).(x) <- Exploded;
       "Mine hit!"
+  | CustomShip custom_ship ->
+      grid.(y).(x) <- HitCustom custom_ship;
+      let health = custom_ship.health - 1 in
+      Hashtbl.replace ship_health custom_ship.id health;
+      if health = 0 then "You sunk a custom ship!" else "Hit!"
   | Empty ->
       grid.(y).(x) <- Miss;
       "Miss!"
-  | Hit _ | Miss | Exploded -> "Already guessed this position!"
+  | Hit _ | Miss | Exploded | HitCustom _ -> "Already guessed this position!"
 
 let rec mine_shot grid =
   let grid_size = Array.length grid in
@@ -122,8 +136,8 @@ let next_targets (x, y) grid =
          validate_coordinates nx ny (Array.length grid))
   |> List.filter (fun (nx, ny) ->
          match grid.(ny).(nx) with
-         | Empty | Ship _ -> true
-         | Hit _ | Miss | Mine | Exploded -> false)
+         | Empty | Ship _ | CustomShip _ -> true
+         | Hit _ | Miss | Mine | Exploded | HitCustom _ -> false)
 
 let rec ai_guess grid =
   match (!ai_mode, !ai_memory) with
@@ -218,3 +232,102 @@ let count_hit_cells grid =
     done
   done;
   !count
+
+let calculate_top_left cells =
+  List.fold_left
+    (fun (min_y, min_x) (y, x) -> (min min_y y, min min_x x))
+    (max_int, max_int) cells
+
+let assemble_custom_ship pieces id =
+  let cells = List.flatten pieces in
+  let health = List.length cells in
+  let top_left = calculate_top_left cells in
+  { id; cells; health; top_left }
+
+let place_custom_ship grid custom_ship top_left =
+  let offset_cells =
+    List.map
+      (fun (y, x) -> (y + fst top_left, x + snd top_left))
+      custom_ship.cells
+  in
+  if
+    List.for_all
+      (fun (y, x) -> validate_coordinates y x (Array.length grid))
+      offset_cells
+  then (
+    let place_coordinate (y, x) =
+      if grid.(y).(x) = Empty then grid.(y).(x) <- CustomShip custom_ship
+      else raise InvalidPlacement
+    in
+    try
+      List.iter place_coordinate offset_cells;
+      Hashtbl.add ship_health custom_ship.id custom_ship.health;
+      true
+    with InvalidPlacement ->
+      List.iter
+        (fun (y, x) ->
+          if grid.(y).(x) = CustomShip custom_ship then grid.(y).(x) <- Empty)
+        offset_cells;
+      raise InvalidPlacement)
+  else raise InvalidPlacement
+
+let create_custom_ship_from_grid grid =
+  let coordinates = ref [] in
+  let health = ref 0 in
+  let min_x = ref max_int and min_y = ref max_int in
+  let max_x = ref min_int and max_y = ref min_int in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      match grid.(y).(x) with
+      | Ship _ ->
+          coordinates := (y, x) :: !coordinates;
+          health := !health + 1;
+          if x < !min_x then min_x := x;
+          if y < !min_y then min_y := y;
+          if x > !max_x then max_x := x;
+          if y > !max_y then max_y := y
+      | _ -> ()
+    done
+  done;
+  let new_coordinates =
+    List.map (fun (y, x) -> (y - !min_y, x - !min_x)) !coordinates
+  in
+  {
+    id = 0;
+    cells = new_coordinates;
+    health = !health;
+    top_left = (!min_y, !min_x);
+  }
+
+let rec read_coordinates grid =
+  Printf.printf
+    "Enter coordinates for the ship (Format: YX YX, e.g., A1 A2) or type \
+     'done' to finish:\n";
+  match String.lowercase_ascii (read_line ()) with
+  | "done" -> create_custom_ship_from_grid grid
+  | input ->
+      let inputs = String.split_on_char ' ' input in
+      let rec process_coords = function
+        | [] -> ()
+        | coord :: rest -> (
+            try
+              let y = char_to_index coord.[0] in
+              let x =
+                int_of_string (String.sub coord 1 (String.length coord - 1)) - 1
+              in
+              if validate_coordinates y x (Array.length grid) then (
+                grid.(y).(x) <- Ship 0;
+                (* Use ship_id = 0 for custom ship pieces *)
+                process_coords rest)
+              else (
+                Printf.printf "Invalid coordinates, try again.\n";
+                process_coords rest)
+            with _ ->
+              Printf.printf "Invalid input format, try again.\n";
+              process_coords rest)
+      in
+      process_coords inputs;
+      print_grid grid true "Custom Ship Design";
+      read_coordinates grid
+
+let get_ship_health_length () = Hashtbl.length ship_health
