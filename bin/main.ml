@@ -60,10 +60,10 @@ let process_coords grid count coord1 coord2 is_custom =
                   {
                     id = count;
                     cells = ship_coords;
-                    health = List.length ship_coords;
-                    top_left = (y1, x1);
-                    width = abs (x2 - x1) + 1;
-                    height = abs (y2 - y1) + 1;
+                    health = 0;
+                    top_left = (0, 0);
+                    width = 0;
+                    height = 0;
                   }
             else grid.(y).(x) <- Ship count;
             Printf.printf "Placed piece at (%d, %d)\n" (y + 1) (x + 1))
@@ -98,15 +98,30 @@ let rec read_coordinates grid count =
     remaining_cells;
   match String.lowercase_ascii (read_line ()) with
   | "done" ->
-      let custom_ship = create_custom_ship_from_grid grid in
-      if List.length custom_ship.cells > max_cells then begin
-        Printf.printf
-          "Custom ship design exceeds the maximum of %d cells. Please redesign.\n"
-          max_cells;
-        clear_custom_ship_from_grid grid;
-        read_coordinates grid count
-      end
-      else custom_ship
+      let custom_cells = ref [] in
+      for y = 0 to Array.length grid - 1 do
+        for x = 0 to Array.length grid.(0) - 1 do
+          match grid.(y).(x) with
+          | CustomShip ship when ship.id = count ->
+              custom_cells := (y, x) :: !custom_cells
+          | _ -> ()
+        done
+      done;
+      let custom_ship =
+        let top_left, width, height = get_bounding_box !custom_cells in
+        {
+          id = count;
+          cells = !custom_cells;
+          health = List.length !custom_cells;
+          top_left;
+          width;
+          height;
+        }
+      in
+      List.iter
+        (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+        custom_ship.cells;
+      custom_ship
   | input ->
       let inputs = String.split_on_char ' ' input in
       if List.length inputs = 2 then (
@@ -152,15 +167,17 @@ let print_test_grid grid =
         | Hit id -> Printf.sprintf "Hit %d" id
         | Exploded -> "Exploded"
         | Miss -> "Miss"
-        | CustomShip { id; top_left; width; height; _ } ->
+        | CustomShip { id; health; top_left; width; height; _ } ->
             Printf.sprintf
-              "CustomShip id:%d top-left:(%d,%d) width:%d height:%d" id
+              "CustomShip id:%d health:%d top-left:(%d,%d) width:%d height:%d"
+              id health
               (fst top_left + 1)
               (snd top_left + 1)
               width height
-        | HitCustom { id; top_left; width; height; _ } ->
-            Printf.sprintf "HitCustom id:%d top-left:(%d,%d) width:%d height:%d"
-              id
+        | HitCustom { id; top_left; width; height; health; _ } ->
+            Printf.sprintf
+              "HitCustom id:%d health:%d top-left:(%d,%d) width:%d height:%d" id
+              health
               (fst top_left + 1)
               (snd top_left + 1)
               width height
