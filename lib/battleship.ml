@@ -397,3 +397,8 @@ let is_adjacent_to_existing grid ship_coords custom_id =
       ship_coords
   in
   (List.length adj_coords > 0, adj_coords)
+
+let get_id cell =
+  match cell with
+  | CustomShip ship -> Some ship.id
+  | _ -> None

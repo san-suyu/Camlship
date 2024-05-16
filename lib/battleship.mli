@@ -162,3 +162,5 @@ val get_adjacent_coords : int * int -> (int * int) list
 
 val is_adjacent_to_existing :
   grid -> (int * int) list -> int -> bool * (int * int) list
+
+val get_id : cell -> int option
