@@ -134,6 +134,8 @@ val assemble_custom_ship : (int * int) list list -> int -> custom_ship
 (** [assemble_custom_ship pieces id] assembles a custom ship from a list of
     coordinates [pieces] *)
 
+val is_overlap : grid -> (int * int) list -> bool
+
 val place_custom_ship : grid -> custom_ship -> int * int -> bool
 (** [place_custom_ship grid custom_ship (y, x)] attempts to place [custom_ship]
     on [grid] at specified coordinates [(y, x)], returns true if successful *)
@@ -152,3 +154,9 @@ val create_custom_ship_from_grid : grid -> custom_ship
 
 val print_custom_ship : custom_ship -> unit
 (** [print_custom_ship custom_ship] prints details of [custom_ship] *)
+
+val count_ship_cells : grid -> int
+val clear_custom_ship_from_grid : grid -> unit
+val parse_coord : string -> int * int
+val get_adjacent_coords : int * int -> (int * int) list
+val is_adjacent_to_existing : grid -> (int * int) list -> bool

@@ -26,90 +26,105 @@ let select_ai_mode () =
       set_ai_mode Easy;
       mode := !mode + 1
 
-let rec read_coordinates grid =
+let max_cells = 10
+
+let process_coords grid count coord1 coord2 =
+  try
+    let y1, x1 = parse_coord coord1 in
+    let y2, x2 = parse_coord coord2 in
+    let ship_coords =
+      if y1 = y2 && x1 = x2 then [ (y1, x1) ]
+      else if y1 = y2 then
+        List.init (abs (x2 - x1) + 1) (fun i -> (y1, min x1 x2 + i))
+      else if x1 = x2 then
+        List.init (abs (y2 - y1) + 1) (fun i -> (min y1 y2 + i, x1))
+      else raise InvalidPlacement
+    in
+    if
+      validate_coordinates y1 x1 (Array.length grid)
+      && validate_coordinates y2 x2 (Array.length grid)
+      && is_overlap grid ship_coords
+      && (count_ship_cells grid = 0 || is_adjacent_to_existing grid ship_coords)
+    then (
+      if List.length ship_coords + count_ship_cells grid > max_cells then
+        raise InvalidPlacement;
+      List.iter (fun (y, x) -> grid.(y).(x) <- Ship count) ship_coords;
+      true)
+    else (
+      Printf.printf
+        "Invalid coordinates, overlapping, or not adjacent, try again.\n";
+      false)
+  with _ ->
+    Printf.printf "Invalid input format, try again.\n";
+    false
+
+let rec read_coordinates grid count =
+  let remaining_cells = max_cells - count_ship_cells grid in
   Printf.printf
-    "Enter coordinates for the ship (Format: YX YX, e.g., A1 A2) or type \
-     'done' to finish:\n";
+    "You have %d cells remaining. Enter coordinates for the ship (Format: YX \
+     YX, e.g., A1 A2) or type 'done' to finish:\n"
+    remaining_cells;
   match String.lowercase_ascii (read_line ()) with
-  | "done" -> create_custom_ship_from_grid grid
+  | "done" ->
+      let custom_ship = create_custom_ship_from_grid grid in
+      if List.length custom_ship.cells > max_cells then begin
+        Printf.printf
+          "Custom ship design exceeds the maximum of %d cells. Please redesign.\n"
+          max_cells;
+        clear_custom_ship_from_grid grid;
+        read_coordinates grid count
+      end
+      else custom_ship
   | input ->
       let inputs = String.split_on_char ' ' input in
-      let rec process_coords = function
-        | [] -> ()
-        | coord1 :: coord2 :: rest -> (
-            try
-              let parse_coord coord =
-                let y = char_to_index coord.[0] in
-                let x =
-                  int_of_string (String.sub coord 1 (String.length coord - 1))
-                  - 1
-                in
-                (y, x)
-              in
-              let y1, x1 = parse_coord coord1 in
-              let y2, x2 = parse_coord coord2 in
-              if
-                validate_coordinates y1 x1 (Array.length grid)
-                && validate_coordinates y2 x2 (Array.length grid)
-              then (
-                let add_piece y x = grid.(y).(x) <- Ship 0 in
-                if y1 = y2 then
-                  for x = min x1 x2 to max x1 x2 do
-                    add_piece y1 x
-                  done
-                else if x1 = x2 then
-                  for y = min y1 y2 to max y1 y2 do
-                    add_piece y x1
-                  done
-                else raise InvalidPlacement;
-                process_coords rest)
-              else (
-                Printf.printf "Invalid coordinates, try again.\n";
-                let _ = read_line () in
-                process_coords rest)
-            with _ ->
-              Printf.printf "Invalid input format, try again.\n";
-              let _ = read_line () in
-              process_coords rest)
-        | _ ->
-            Printf.printf "Please provide start and end coordinates.\n";
-            let _ = read_line () in
-            process_coords inputs
-      in
-      process_coords inputs;
-      print_grid grid true "Custom Ship Design";
-      read_coordinates grid
+      if List.length inputs = 2 then
+        let coord1 = List.nth inputs 0 in
+        let coord2 = List.nth inputs 1 in
+        if process_coords grid count coord1 coord2 then begin
+          print_grid grid true "Custom Ship Design";
+          read_coordinates grid count
+        end
+        else read_coordinates grid count
+      else (
+        Printf.printf "Invalid input format, try again.\n";
+        read_coordinates grid count)
 
-let rec place_custom_ship_on_grid grid custom_ship =
-  Printf.printf
-    "Place the custom ship on the actual grid (Format: Y1X1, e.g., A1):\n";
-  try
-    let input = read_line () in
-    let start_y_char = input.[0] in
-    let start_x_substr = String.sub input 1 (String.length input - 1) in
-    let y1 = Battleship.char_to_index start_y_char in
-    let x1 = int_of_string start_x_substr - 1 in
-    if Battleship.validate_coordinates y1 x1 (Array.length grid) then
-      let top_left = (y1, x1) in
-      if Battleship.place_custom_ship grid custom_ship top_left then begin
-        Printf.printf "Custom ship placed successfully.\n";
-        Battleship.print_grid grid true "Final Player's Grid"
-      end
-      else begin
-        Printf.printf "Invalid placement, try again.\n";
-        place_custom_ship_on_grid grid custom_ship
-      end
-    else begin
-      Printf.printf "Coordinates are out of bounds, try again.\n";
-      place_custom_ship_on_grid grid custom_ship
-    end
-  with
-  | Failure _ ->
-      Printf.printf "Please check your input format and try again.\n";
-      place_custom_ship_on_grid grid custom_ship
-  | Battleship.InvalidPlacement ->
-      Printf.printf "Invalid placement, try again.\n";
-      place_custom_ship_on_grid grid custom_ship
+let print_cell_types grid =
+  let grid_size = Array.length grid in
+  for y = 0 to grid_size - 1 do
+    for x = 0 to grid_size - 1 do
+      let cell_type =
+        match grid.(y).(x) with
+        | Empty -> "Empty"
+        | Ship id -> Printf.sprintf "Ship %d" id
+        | Mine -> "Mine"
+        | Hit id -> Printf.sprintf "Hit %d" id
+        | Exploded -> "Exploded"
+        | Miss -> "Miss"
+        | CustomShip _ -> "CustomShip"
+        | HitCustom _ -> "HitCustom"
+      in
+      Printf.printf "(%c%d): %s\n"
+        (Char.chr (y + Char.code 'A'))
+        (x + 1) cell_type
+    done
+  done
+(* let rec place_custom_ship_on_grid grid custom_ship = Printf.printf "Place the
+   custom ship on the actual grid (Format: Y1X1, e.g., A1):\n"; try let input =
+   read_line () in let start_y_char = input.[0] in let start_x_substr =
+   String.sub input 1 (String.length input - 1) in let y1 =
+   Battleship.char_to_index start_y_char in let x1 = int_of_string
+   start_x_substr - 1 in if Battleship.validate_coordinates y1 x1 (Array.length
+   grid) then let top_left = (y1, x1) in if Battleship.place_custom_ship grid
+   custom_ship top_left then begin Printf.printf "Custom ship placed
+   successfully.\n"; Battleship.print_grid grid true "Final Player's Grid" end
+   else begin Printf.printf "Invalid placement, try again.\n";
+   place_custom_ship_on_grid grid custom_ship end else begin Printf.printf
+   "Coordinates are out of bounds, try again.\n"; place_custom_ship_on_grid grid
+   custom_ship end with | Failure _ -> Printf.printf "Please check your input
+   format and try again.\n"; place_custom_ship_on_grid grid custom_ship |
+   Battleship.InvalidPlacement -> Printf.printf "Invalid placement, try
+   again.\n"; place_custom_ship_on_grid grid custom_ship *)
 
 let gold1 = ref 100
 let gold2 = ref 100
@@ -379,7 +394,7 @@ let rec game_loop grid_size =
         try
           let input = read_line () in
           if input = "design" then begin
-            let custom = read_coordinates grid1 in
+            let custom = read_coordinates grid1 count in
             custom_ship := Some custom;
             let top_left_y, top_left_x = custom.top_left in
             Printf.printf
@@ -387,6 +402,7 @@ let rec game_loop grid_size =
                top-left coordinate: (%d, %d)\n"
               custom.health custom.width custom.height (top_left_y + 1)
               (top_left_x + 1);
+            print_cell_types grid1;
             place_ships (count + 1) max_ships
           end
           else
@@ -413,6 +429,7 @@ let rec game_loop grid_size =
                   | true ->
                       let () = Printf.printf "Ship placed successfully.\n" in
                       let () = print_grid grid1 true "Final Player's Grid" in
+                      print_cell_types grid1;
                       place_ships (count + 1) max_ships
                   | false ->
                       let () =
@@ -428,11 +445,13 @@ let rec game_loop grid_size =
                           let () =
                             print_grid grid1 true "Final Player's Grid"
                           in
+                          print_cell_types grid1;
                           place_ships (count + 1) max_ships
                       | false ->
                           let () =
                             Printf.printf "Invalid placement, try again.\n"
                           in
+                          print_cell_types grid1;
                           place_ships count max_ships)
                 else begin
                   Printf.printf "Coordinates are out of bounds, try again.\n";
@@ -516,7 +535,7 @@ let rec game_loop grid_size =
         shoot_phase ()
     in
 
-    place_ships 0 5
+    place_ships 0 2
   end
   else begin
     let rec player1 count max_ships =
@@ -529,7 +548,7 @@ let rec game_loop grid_size =
         try
           let input = read_line () in
           if input = "design" then begin
-            let custom = read_coordinates grid1 in
+            let custom = read_coordinates grid1 count in
             custom_ship := Some custom;
             let top_left_y, top_left_x = custom.top_left in
             Printf.printf
@@ -602,7 +621,7 @@ let rec game_loop grid_size =
             match !custom_ship with
             | Some custom ->
                 print_custom_ship custom;
-                place_custom_ship_on_grid grid3 custom;
+                (* place_custom_ship_on_grid grid3 custom; *)
                 player2 (count + 1) max_ships
             | None ->
                 Printf.printf "No custom ship designed by Player 1.\n";

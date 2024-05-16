@@ -80,7 +80,9 @@ let place_ship grid ship_id (y1, x1) (y2, x2) =
     (not (validate_coordinates x1 y1 (Array.length grid)))
     || not (validate_coordinates x2 y2 (Array.length grid))
   then raise InvalidPlacement
-  else if not (is_valid_placement (y1, x1) (y2, x2)) then raise InvalidPlacement
+  else if
+    (not (is_valid_placement (y1, x1) (y2, x2))) && not (y1 = y2 && x1 = x2)
+  then raise InvalidPlacement
   else
     let dir = if y1 = y2 then `Horizontal else `Vertical in
     let length = max (abs (y2 - y1)) (abs (x2 - x1)) + 1 in
@@ -222,6 +224,7 @@ let check_game_over grid =
         Array.for_all
           (function
             | Ship _ -> false
+            | CustomShip _ -> false
             | _ -> true)
           row)
       grid
@@ -267,6 +270,38 @@ let assemble_custom_ship pieces id =
   let health = List.length cells in
   { id; cells; health; top_left; width; height }
 
+let create_custom_ship_from_grid grid =
+  let coordinates = ref [] in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      match grid.(y).(x) with
+      | CustomShip ship when ship.id = 100 ->
+          coordinates := (y, x) :: !coordinates
+      | _ -> ()
+    done
+  done;
+  let top_left, width, height = get_bounding_box !coordinates in
+  let new_coordinates =
+    List.map (fun (y, x) -> (y - fst top_left, x - snd top_left)) !coordinates
+  in
+  {
+    id = 100;
+    cells = new_coordinates;
+    health = List.length !coordinates;
+    top_left;
+    width;
+    height;
+  }
+
+let is_overlap grid ship_coords =
+  List.for_all
+    (fun (y, x) ->
+      match grid.(y).(x) with
+      | Empty -> true
+      | CustomShip _ -> true
+      | _ -> false)
+    ship_coords
+
 let place_custom_ship grid custom_ship top_left =
   let offset_cells =
     List.map
@@ -277,11 +312,9 @@ let place_custom_ship grid custom_ship top_left =
     List.for_all
       (fun (y, x) -> validate_coordinates y x (Array.length grid))
       offset_cells
+    && is_overlap grid offset_cells
   then (
-    let place_coordinate (y, x) =
-      if grid.(y).(x) = Empty then grid.(y).(x) <- CustomShip custom_ship
-      else raise InvalidPlacement
-    in
+    let place_coordinate (y, x) = grid.(y).(x) <- CustomShip custom_ship in
     try
       List.iter place_coordinate offset_cells;
       Hashtbl.add ship_health custom_ship.id custom_ship.health;
@@ -293,28 +326,6 @@ let place_custom_ship grid custom_ship top_left =
         offset_cells;
       raise InvalidPlacement)
   else raise InvalidPlacement
-
-let create_custom_ship_from_grid grid =
-  let coordinates = ref [] in
-  for y = 0 to Array.length grid - 1 do
-    for x = 0 to Array.length grid.(0) - 1 do
-      match grid.(y).(x) with
-      | Ship 0 -> coordinates := (y, x) :: !coordinates
-      | _ -> ()
-    done
-  done;
-  let top_left, width, height = get_bounding_box !coordinates in
-  let new_coordinates =
-    List.map (fun (y, x) -> (y - fst top_left, x - snd top_left)) !coordinates
-  in
-  {
-    id = 0;
-    cells = new_coordinates;
-    health = List.length !coordinates;
-    top_left;
-    width;
-    height;
-  }
 
 let get_ship_health_length () = Hashtbl.length ship_health
 
@@ -329,3 +340,48 @@ let print_custom_ship custom_ship =
       else raise (Invalid_argument "index out of bounds"))
     custom_ship.cells;
   print_grid grid true "Custom Ship"
+
+let count_ship_cells grid =
+  let count = ref 0 in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      match grid.(y).(x) with
+      | CustomShip ship when ship.id = 100 -> incr count
+      | _ -> ()
+    done
+  done;
+  !count
+
+let clear_custom_ship_from_grid grid =
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      match grid.(y).(x) with
+      | CustomShip ship when ship.id = 100 -> grid.(y).(x) <- Empty
+      | _ -> ()
+    done
+  done
+
+let parse_coord coord =
+  let y = char_to_index coord.[0] in
+  let x = int_of_string (String.sub coord 1 (String.length coord - 1)) - 1 in
+  (y, x)
+
+let get_adjacent_coords (y, x) =
+  [ (y - 1, x); (y + 1, x); (y, x - 1); (y, x + 1) ]
+  |> List.filter (fun (ny, nx) -> ny >= 0 && nx >= 0 && ny < 10 && nx < 10)
+
+let is_adjacent_to_existing grid ship_coords =
+  let existing_coords = ref [] in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      match grid.(y).(x) with
+      | Ship _ | CustomShip _ -> existing_coords := (y, x) :: !existing_coords
+      | _ -> ()
+    done
+  done;
+  List.exists
+    (fun coord ->
+      List.exists
+        (fun adj -> List.mem adj !existing_coords)
+        (get_adjacent_coords coord))
+    ship_coords
