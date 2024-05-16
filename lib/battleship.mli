@@ -73,7 +73,7 @@ val place_ship : grid -> int -> int * int -> int * int -> bool
 
 val place_mine : grid -> int * int -> bool
 (** [place_mine grid (y, x)] tries to place a mine at specified coordinates
-    [(y, x)] on [grid] returns true if successful *)
+    [(y, x)] on [grid], returns true if successful *)
 
 val shoot : grid -> int * int -> string
 (** [shoot grid (y, x)] processes a shot at the specified coordinates [(y, x)],
