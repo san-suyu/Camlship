@@ -159,4 +159,6 @@ val count_ship_cells : grid -> int
 val clear_custom_ship_from_grid : grid -> unit
 val parse_coord : string -> int * int
 val get_adjacent_coords : int * int -> (int * int) list
-val is_adjacent_to_existing : grid -> (int * int) list -> bool
+
+val is_adjacent_to_existing :
+  grid -> (int * int) list -> int -> bool * (int * int) list

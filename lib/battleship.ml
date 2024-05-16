@@ -346,7 +346,7 @@ let count_ship_cells grid =
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid.(0) - 1 do
       match grid.(y).(x) with
-      | CustomShip ship when ship.id = 100 -> incr count
+      | CustomShip _ -> incr count
       | _ -> ()
     done
   done;
@@ -370,18 +370,30 @@ let get_adjacent_coords (y, x) =
   [ (y - 1, x); (y + 1, x); (y, x - 1); (y, x + 1) ]
   |> List.filter (fun (ny, nx) -> ny >= 0 && nx >= 0 && ny < 10 && nx < 10)
 
-let is_adjacent_to_existing grid ship_coords =
+(* let is_adjacent_to_existing grid ship_coords custom_id = let existing_coords
+   = ref [] in for y = 0 to Array.length grid - 1 do for x = 0 to Array.length
+   grid.(0) - 1 do match grid.(y).(x) with | CustomShip { id; _ } when id =
+   custom_id -> existing_coords := (y, x) :: !existing_coords | _ -> () done
+   done; let adj_coords = List.filter (fun coord -> List.exists (fun adj ->
+   List.mem adj !existing_coords) (get_adjacent_coords coord)) ship_coords in
+   (List.length adj_coords > 0, adj_coords) *)
+
+let is_adjacent_to_existing grid ship_coords custom_id =
   let existing_coords = ref [] in
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid.(0) - 1 do
       match grid.(y).(x) with
-      | Ship _ | CustomShip _ -> existing_coords := (y, x) :: !existing_coords
+      | CustomShip { id; _ } when id = custom_id ->
+          existing_coords := (y, x) :: !existing_coords
       | _ -> ()
     done
   done;
-  List.exists
-    (fun coord ->
-      List.exists
-        (fun adj -> List.mem adj !existing_coords)
-        (get_adjacent_coords coord))
-    ship_coords
+  let adj_coords =
+    List.filter
+      (fun coord ->
+        List.exists
+          (fun adj -> List.mem adj !existing_coords)
+          (get_adjacent_coords coord))
+      ship_coords
+  in
+  (List.length adj_coords > 0, adj_coords)
