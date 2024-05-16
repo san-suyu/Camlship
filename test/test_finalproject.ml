@@ -1,6 +1,9 @@
 open OUnit2
 open Battleship
 
+(* Source: battleship corner test case examples” prompt, labs.openai.com/, lines
+   7, 17 25, 38, 53 accessed 5/12/24.*)
+
 let test_create_grid _ =
   let grid = create_grid 10 in
   assert_equal 10 (Array.length grid);
