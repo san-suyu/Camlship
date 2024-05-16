@@ -66,15 +66,13 @@ let process_coords grid count coord1 coord2 is_custom =
                     height = 0;
                   }
             else grid.(y).(x) <- Ship count;
-            Printf.printf "Placed piece at (%d, %d)\n" (y + 1) (x + 1))
+            Printf.printf "Placed piece at (%d, %d)\n" y x)
           ship_coords;
         if is_custom && not is_first_piece then
           Printf.printf
             "The pieces are adjacent to existing pieces with the same custom \
              ship ID at coordinates: ";
-        List.iter
-          (fun (y, x) -> Printf.printf "(%d, %d) " (y + 1) (x + 1))
-          adj_coords;
+        List.iter (fun (y, x) -> Printf.printf "(%d, %d) " y x) adj_coords;
         Printf.printf "\n";
         true)
       else (
@@ -170,21 +168,13 @@ let print_test_grid grid =
         | CustomShip { id; health; top_left; width; height; _ } ->
             Printf.sprintf
               "CustomShip id:%d health:%d top-left:(%d,%d) width:%d height:%d"
-              id health
-              (fst top_left + 1)
-              (snd top_left + 1)
-              width height
+              id health (fst top_left) (snd top_left) width height
         | HitCustom { id; top_left; width; height; health; _ } ->
             Printf.sprintf
               "HitCustom id:%d health:%d top-left:(%d,%d) width:%d height:%d" id
-              health
-              (fst top_left + 1)
-              (snd top_left + 1)
-              width height
+              health (fst top_left) (snd top_left) width height
       in
-      Printf.printf "(%c%d): %s\n"
-        (Char.chr (y + Char.code 'A'))
-        (x + 1) cell_info
+      Printf.printf "(%c%d): %s\n" (Char.chr (y + Char.code 'A')) x cell_info
     done
   done
 
@@ -620,7 +610,7 @@ let rec game_loop grid_size =
         shoot_phase ()
     in
 
-    place_ships 0 2
+    place_ships 0 5
   end
   else begin
     let rec player1 count max_ships =

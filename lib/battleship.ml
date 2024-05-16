@@ -264,11 +264,26 @@ let get_bounding_box coordinates =
   let height = !max_y - !min_y + 1 in
   (top_left, width, height)
 
+let generate_full_coordinates (y1, x1) (y2, x2) =
+  if y1 = y2 then List.init (abs (x2 - x1) + 1) (fun i -> (y1, min x1 x2 + i))
+  else if x1 = x2 then
+    List.init (abs (y2 - y1) + 1) (fun i -> (min y1 y2 + i, x1))
+  else raise InvalidPlacement
+
 let assemble_custom_ship pieces id =
-  let cells = List.flatten pieces in
-  let top_left, width, height = get_bounding_box cells in
-  let health = List.length cells in
-  { id; cells; health; top_left; width; height }
+  let full_cells =
+    List.flatten
+      (List.map
+         (fun piece ->
+           match piece with
+           | [ start; finish ] -> generate_full_coordinates start finish
+           | _ -> piece)
+         pieces)
+  in
+  let unique_cells = List.sort_uniq compare full_cells in
+  let health = List.length unique_cells in
+  let top_left, width, height = get_bounding_box unique_cells in
+  { id; cells = unique_cells; health; top_left; width; height }
 
 let create_custom_ship_from_grid grid =
   let coordinates = ref [] in
@@ -302,11 +317,9 @@ let is_overlap grid ship_coords id =
       | _ -> false)
     ship_coords
 
-let place_custom_ship grid custom_ship top_left =
+let place_custom_ship grid custom_ship (offset_y, offset_x) =
   let offset_cells =
-    List.map
-      (fun (y, x) -> (y + fst top_left, x + snd top_left))
-      custom_ship.cells
+    List.map (fun (y, x) -> (y + offset_y, x + offset_x)) custom_ship.cells
   in
   if
     List.for_all
@@ -325,7 +338,7 @@ let place_custom_ship grid custom_ship top_left =
           if grid.(y).(x) = CustomShip custom_ship then grid.(y).(x) <- Empty)
         offset_cells;
       raise InvalidPlacement)
-  else raise InvalidPlacement
+  else false
 
 let get_ship_health_length () = Hashtbl.length ship_health
 

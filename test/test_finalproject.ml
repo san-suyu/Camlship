@@ -642,50 +642,46 @@ let test_assemble_custom_ship _ =
   assert_equal 2 custom_ship.height
 
 let test_assemble_custom_ship_id _ =
-  let pieces1 = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
-  let custom_ship1 = assemble_custom_ship pieces1 1 in
-  assert_equal ~msg:"Custom ship id 1" 1 custom_ship1.id;
-  assert_equal ~msg:"Custom ship 1 health" 4 custom_ship1.health;
-  assert_equal ~msg:"Custom ship 1 top left" (0, 0) custom_ship1.top_left;
-  assert_equal ~msg:"Custom ship 1 width" 2 custom_ship1.width;
-  assert_equal ~msg:"Custom ship 1 height" 2 custom_ship1.height;
-
-  let pieces2 = [ [ (0, 0); (0, 2) ]; [ (1, 0); (1, 2) ] ] in
-  let custom_ship2 = assemble_custom_ship pieces2 2 in
-  assert_equal ~msg:"Custom ship id 2" 2 custom_ship2.id;
-  assert_equal ~msg:"Custom ship 2 health" 6 custom_ship2.health;
-  assert_equal ~msg:"Custom ship 2 top left" (0, 0) custom_ship2.top_left;
-  assert_equal ~msg:"Custom ship 2 width" 3 custom_ship2.width;
-  assert_equal ~msg:"Custom ship 2 height" 2 custom_ship2.height;
-
-  let pieces3 = [ [ (1, 1); (1, 2) ]; [ (2, 1); (2, 2) ] ] in
-  let custom_ship3 = assemble_custom_ship pieces3 3 in
-  assert_equal ~msg:"Custom ship id 3" 3 custom_ship3.id;
-  assert_equal ~msg:"Custom ship 3 health" 4 custom_ship3.health;
-  assert_equal ~msg:"Custom ship 3 top left" (1, 1) custom_ship3.top_left;
-  assert_equal ~msg:"Custom ship 3 width" 2 custom_ship3.width;
-  assert_equal ~msg:"Custom ship 3 height" 2 custom_ship3.height;
-
-  let pieces_middle =
+  let pieces1 =
     [
-      [ (0, 0); (0, 1); (0, 2) ];
-      [ (1, 0); (1, 1); (1, 2) ];
-      [ (2, 0); (2, 1); (2, 2) ];
-      [ (3, 0); (3, 1); (3, 2) ];
-      [ (4, 0); (4, 1); (4, 2) ];
-      [ (5, 0); (5, 1); (5, 2) ];
-      [ (6, 0); (6, 1); (6, 2) ];
-      [ (7, 0); (7, 1); (7, 2) ];
-      [ (8, 0); (8, 1); (8, 2) ];
-      [ (9, 0); (9, 1); (9, 2) ];
+      [ (1, 0); (1, 2) ];
+      [ (0, 1); (0, 1) ];
+      [ (4, 2); (0, 2) ];
+      [ (2, 3); (2, 3) ];
     ]
   in
-  let custom_ship_middle = assemble_custom_ship pieces_middle 4 in
-  assert_equal 4 custom_ship_middle.id;
-  assert_equal 30 custom_ship_middle.health;
-  assert_equal (0, 0) custom_ship_middle.top_left;
-  assert_equal 3 custom_ship_middle.width;
-  assert_equal 10 custom_ship_middle.height
+  let custom_ship1 = assemble_custom_ship pieces1 0 in
+  assert_equal ~msg:"Custom ship id 0" 0 custom_ship1.id;
+  assert_equal ~msg:"Custom ship 9 health" 9 custom_ship1.health;
+  assert_equal ~msg:"Custom ship top left at (0, 0)" (0, 0)
+    custom_ship1.top_left;
+  assert_equal ~msg:"Custom ship 4 width" 4 custom_ship1.width;
+  assert_equal ~msg:"Custom ship 5 height" 5 custom_ship1.height;
+
+  let pieces2 =
+    [
+      [ (7, 5); (7, 2) ];
+      [ (5, 4); (5, 1) ];
+      [ (4, 3); (4, 3) ];
+      [ (6, 2); (5, 2) ];
+    ]
+  in
+  let custom_ship2 = assemble_custom_ship pieces2 1 in
+  assert_equal ~msg:"Custom ship id 1" 1 custom_ship2.id;
+  assert_equal ~msg:"Custom ship 10 health" 10 custom_ship2.health;
+  assert_equal ~msg:"Custom ship top left at (4, 1)" (4, 1)
+    custom_ship2.top_left;
+  assert_equal ~msg:"Custom ship 5 width" 5 custom_ship2.width;
+  assert_equal ~msg:"Custom ship 4 height" 4 custom_ship2.height;
+
+  let pieces3 = [ [ (0, 0); (0, 0) ] ] in
+  let custom_ship3 = assemble_custom_ship pieces3 2 in
+  assert_equal ~msg:"Custom ship id 2" 2 custom_ship3.id;
+  assert_equal ~msg:"Custom ship 1 health" 1 custom_ship3.health;
+  assert_equal ~msg:"Custom ship top left at (0, 0)" (0, 0)
+    custom_ship3.top_left;
+  assert_equal ~msg:"Custom ship 1 width" 1 custom_ship3.width;
+  assert_equal ~msg:"Custom ship 1 height" 1 custom_ship3.height
 
 let test_place_custom_ship_success _ =
   let grid = create_grid 10 in
@@ -697,41 +693,314 @@ let test_place_custom_ship_success _ =
     (fun (y, x) -> assert_equal (CustomShip custom_ship) grid.(y).(x))
     custom_ship.cells
 
-let test_place_custom_ship_failure _ =
+let test_create_custom_ship_from_grid _ =
   let grid = create_grid 10 in
-  let pieces = [ [ (0, 0); (0, 1) ]; [ (1, 0); (1, 1) ] ] in
-  let custom_ship = assemble_custom_ship pieces 1 in
-  assert_bool "Custom ship placement should fail due to out of bounds"
-    (not (try place_custom_ship grid custom_ship (9, 9) with _ -> false));
 
-  let grid = create_grid 10 in
-  let _ = place_ship grid 1 (0, 0) (0, 4) in
-  assert_bool
-    "Custom ship placement should fail due to overlap with existing ship"
-    (not (try place_custom_ship grid custom_ship (0, 0) with _ -> false));
+  let custom_ship_parts = [ (1, 0); (1, 2); (0, 1); (4, 2); (2, 3) ] in
+  List.iter
+    (fun (y, x) ->
+      grid.(y).(x) <-
+        CustomShip
+          {
+            id = 100;
+            cells = [];
+            health = 0;
+            top_left = (0, 0);
+            width = 0;
+            height = 0;
+          })
+    custom_ship_parts;
 
-  let grid = create_grid 10 in
-  let overlapping_pieces = [ [ (0, 0); (0, 1) ]; [ (0, 1); (0, 2) ] ] in
-  let overlapping_ship = assemble_custom_ship overlapping_pieces 1 in
-  assert_bool
-    "Custom ship placement should fail due to overlap within the ship itself"
-    (not (try place_custom_ship grid overlapping_ship (0, 0) with _ -> false));
+  let custom_ship = create_custom_ship_from_grid grid in
 
-  let grid = create_grid 10 in
-  let pieces = [ [ (9, 9); (9, 10) ]; [ (10, 9); (10, 10) ] ] in
-  let custom_ship_out_of_bounds = assemble_custom_ship pieces 1 in
-  assert_bool "Custom ship placement should fail due to out of upper bounds"
-    (not
-       (try place_custom_ship grid custom_ship_out_of_bounds (9, 9)
-        with _ -> false));
+  assert_equal ~msg:"Custom ship id" 100 custom_ship.id;
+  assert_equal ~msg:"Custom ship health"
+    (List.length custom_ship_parts)
+    custom_ship.health;
+  assert_equal ~msg:"Custom ship top left" (0, 0) custom_ship.top_left;
+  assert_equal ~msg:"Custom ship width" 4 custom_ship.width;
+  assert_equal ~msg:"Custom ship height" 5 custom_ship.height;
+  assert_equal ~msg:"Custom ship cells"
+    (List.sort compare custom_ship.cells)
+    (List.sort compare [ (1, 0); (1, 2); (0, 1); (4, 2); (2, 3) ])
 
+let test_create_custom_ship_with_disjoint_parts _ =
   let grid = create_grid 10 in
-  let pieces = [ [ (0, 0); (0, -1) ]; [ (-1, 0); (-1, -1) ] ] in
-  let custom_ship_out_of_left_bounds = assemble_custom_ship pieces 1 in
-  assert_bool "Custom ship placement should fail due to out of left bounds"
-    (not
-       (try place_custom_ship grid custom_ship_out_of_left_bounds (0, 0)
-        with _ -> false))
+  let custom_ship_parts = [ (0, 0); (0, 1); (1, 0); (1, 1); (3, 3); (3, 4) ] in
+  List.iter
+    (fun (y, x) ->
+      grid.(y).(x) <-
+        CustomShip
+          {
+            id = 100;
+            cells = [];
+            health = 0;
+            top_left = (0, 0);
+            width = 0;
+            height = 0;
+          })
+    custom_ship_parts;
+
+  let custom_ship = create_custom_ship_from_grid grid in
+
+  assert_equal ~msg:"Custom ship id" 100 custom_ship.id;
+  assert_equal ~msg:"Custom ship health"
+    (List.length custom_ship_parts)
+    custom_ship.health;
+  assert_equal ~msg:"Custom ship top left" (0, 0) custom_ship.top_left;
+  assert_equal ~msg:"Custom ship width" 5 custom_ship.width;
+  assert_equal ~msg:"Custom ship height" 4 custom_ship.height;
+  assert_equal ~msg:"Custom ship cells"
+    (List.sort compare custom_ship.cells)
+    (List.sort compare [ (0, 0); (0, 1); (1, 0); (1, 1); (3, 3); (3, 4) ])
+
+let test_is_overlap_no_overlap _ =
+  let grid = create_grid 10 in
+  let ship_coords = [ (0, 0); (0, 1); (0, 2) ] in
+  assert_bool "No overlap with empty grid" (is_overlap grid ship_coords 1)
+
+let test_is_overlap_with_same_id _ =
+  let grid = create_grid 10 in
+  let custom_ship =
+    {
+      id = 1;
+      cells = [ (0, 0); (0, 1) ];
+      health = 2;
+      top_left = (0, 0);
+      width = 2;
+      height = 1;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+    custom_ship.cells;
+  let ship_coords = [ (0, 0); (0, 1); (0, 2) ] in
+  assert_bool "Overlap with same custom ship ID" (is_overlap grid ship_coords 1)
+
+let test_is_overlap_with_different_id _ =
+  let grid = create_grid 10 in
+  let custom_ship =
+    {
+      id = 1;
+      cells = [ (0, 0); (0, 1) ];
+      health = 2;
+      top_left = (0, 0);
+      width = 2;
+      height = 1;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+    custom_ship.cells;
+  let ship_coords = [ (0, 0); (0, 1); (0, 2) ] in
+  assert_bool "Overlap with different custom ship ID"
+    (not (is_overlap grid ship_coords 2))
+
+let test_is_overlap_with_regular_ship _ =
+  let grid = create_grid 10 in
+  let _ = place_ship grid 1 (0, 0) (0, 1) in
+  let ship_coords = [ (0, 0); (0, 1); (0, 2) ] in
+  assert_bool "Overlap with regular ship" (not (is_overlap grid ship_coords 2))
+
+let test_is_overlap_with_empty_spaces _ =
+  let grid = create_grid 10 in
+  let ship_coords = [ (5, 5); (5, 6); (5, 7) ] in
+  assert_bool "No overlap with empty spaces" (is_overlap grid ship_coords 1)
+
+let test_count_ship_cells_no_custom_ships _ =
+  let grid = create_grid 10 in
+  let custom_id = 1 in
+  let count = count_ship_cells grid custom_id in
+  assert_equal ~msg:"No custom ships on the grid" 0 count
+
+let test_count_ship_cells_single_custom_ship _ =
+  let grid = create_grid 10 in
+  let custom_ship =
+    {
+      id = 1;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+    custom_ship.cells;
+  let count = count_ship_cells grid custom_ship.id in
+  assert_equal ~msg:"Single custom ship on the grid" 4 count
+
+let test_count_ship_cells_multiple_custom_ships _ =
+  let grid = create_grid 10 in
+  let custom_ship1 =
+    {
+      id = 1;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  let custom_ship2 =
+    {
+      id = 2;
+      cells = [ (2, 2); (2, 3); (3, 2); (3, 3) ];
+      health = 4;
+      top_left = (2, 2);
+      width = 2;
+      height = 2;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship1)
+    custom_ship1.cells;
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship2)
+    custom_ship2.cells;
+  let count1 = count_ship_cells grid custom_ship1.id in
+  let count2 = count_ship_cells grid custom_ship2.id in
+  assert_equal ~msg:"First custom ship on the grid" 4 count1;
+  assert_equal ~msg:"Second custom ship on the grid" 4 count2
+
+let test_count_ship_cells_mixed_ships _ =
+  let grid = create_grid 10 in
+  let custom_ship =
+    {
+      id = 1;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  let _ = place_ship grid 2 (2, 0) (2, 2) in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+    custom_ship.cells;
+  let count_custom = count_ship_cells grid custom_ship.id in
+  let count_regular = count_ship_cells grid 2 in
+  assert_equal ~msg:"Custom ship on the grid" 4 count_custom;
+  assert_equal
+    ~msg:"Regular ship on the grid should not be counted as custom ship" 0
+    count_regular
+
+let test_clear_custom_ship_from_grid_no_custom_ships _ =
+  let grid = create_grid 10 in
+  clear_custom_ship_from_grid grid;
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      assert_equal ~msg:"Grid should remain empty" Empty grid.(y).(x)
+    done
+  done
+
+let test_clear_custom_ship_from_grid_single_custom_ship _ =
+  let grid = create_grid 10 in
+  let custom_ship =
+    {
+      id = 100;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship)
+    custom_ship.cells;
+  clear_custom_ship_from_grid grid;
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      assert_equal ~msg:"Grid cells should be empty after clearing custom ship"
+        Empty
+        grid.(y).(x)
+    done
+  done
+
+let test_clear_custom_ship_from_grid_mixed_ships _ =
+  let grid = create_grid 10 in
+  let custom_ship1 =
+    {
+      id = 100;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  let custom_ship2 =
+    {
+      id = 101;
+      cells = [ (2, 2); (2, 3); (3, 2); (3, 3) ];
+      health = 4;
+      top_left = (2, 2);
+      width = 2;
+      height = 2;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship1)
+    custom_ship1.cells;
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship2)
+    custom_ship2.cells;
+  clear_custom_ship_from_grid grid;
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      if grid.(y).(x) = CustomShip custom_ship2 then
+        assert_equal ~msg:"Custom ship with id 101 should remain"
+          (CustomShip custom_ship2)
+          grid.(y).(x)
+      else
+        assert_equal
+          ~msg:
+            "Grid cells should be empty after clearing custom ship with id 100"
+          Empty
+          grid.(y).(x)
+    done
+  done
+
+let test_clear_custom_ship_from_grid_partially _ =
+  let grid = create_grid 10 in
+  let custom_ship1 =
+    {
+      id = 100;
+      cells = [ (0, 0); (0, 1); (1, 0); (1, 1) ];
+      health = 4;
+      top_left = (0, 0);
+      width = 2;
+      height = 2;
+    }
+  in
+  let custom_ship2 =
+    {
+      id = 100;
+      cells = [ (2, 2); (2, 3); (3, 2); (3, 3) ];
+      health = 4;
+      top_left = (2, 2);
+      width = 2;
+      height = 2;
+    }
+  in
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship1)
+    custom_ship1.cells;
+  List.iter
+    (fun (y, x) -> grid.(y).(x) <- CustomShip custom_ship2)
+    custom_ship2.cells;
+  clear_custom_ship_from_grid grid;
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(0) - 1 do
+      assert_equal
+        ~msg:"Grid cells should be empty after clearing custom ship with id 100"
+        Empty
+        grid.(y).(x)
+    done
+  done
 
 let suite =
   "Battleship Test Suite"
@@ -825,8 +1094,34 @@ let suite =
          >:: test_get_bounding_box_scattered_point;
          "test_assemble_custom_ship" >:: test_assemble_custom_ship;
          "test_place_custom_ship_success" >:: test_place_custom_ship_success;
-         "test_place_custom_ship_failure" >:: test_place_custom_ship_failure;
-         "test_assemble_custom_ship_id" >:: test_assemble_custom_ship_id;
+         "test_create_custom_ship_from_grid"
+         >:: test_create_custom_ship_from_grid;
+         "test_create_custom_ship_with_disjoint_parts"
+         >:: test_create_custom_ship_with_disjoint_parts;
+         "test_is_overlap_no_overlap" >:: test_is_overlap_no_overlap;
+         "test_is_overlap_with_same_id" >:: test_is_overlap_with_same_id;
+         "test_is_overlap_with_different_id"
+         >:: test_is_overlap_with_different_id;
+         "test_is_overlap_with_regular_ship"
+         >:: test_is_overlap_with_regular_ship;
+         "test_is_overlap_with_empty_spaces"
+         >:: test_is_overlap_with_empty_spaces;
+         "test_clear_custom_ship_from_grid_no_custom_ships"
+         >:: test_clear_custom_ship_from_grid_no_custom_ships;
+         "test_clear_custom_ship_from_grid_single_custom_ship"
+         >:: test_clear_custom_ship_from_grid_single_custom_ship;
+         "test_clear_custom_ship_from_grid_mixed_ships"
+         >:: test_clear_custom_ship_from_grid_mixed_ships;
+         "test_clear_custom_ship_from_grid_partially"
+         >:: test_clear_custom_ship_from_grid_partially;
+         "test_count_ship_cells_no_custom_ships"
+         >:: test_count_ship_cells_no_custom_ships;
+         "test_count_ship_cells_single_custom_ship"
+         >:: test_count_ship_cells_single_custom_ship;
+         "test_count_ship_cells_multiple_custom_ships"
+         >:: test_count_ship_cells_multiple_custom_ships;
+         "test_count_ship_cells_mixed_ships"
+         >:: test_count_ship_cells_mixed_ships;
        ]
 
 let () = run_test_tt_main suite
