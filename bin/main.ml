@@ -1,4 +1,4 @@
-(* @authors Conner Smith (css289), Aidan Lee (abl88), Kira Pinkney (kjp76),
+(* @authors Conner Smith (css289), Aidan Lee (akl72), Kira Pinkney (kjp76),
    Lindsay Chong (lyc28), Xiaoxin Li (xl432) *)
 
 open Battleship
