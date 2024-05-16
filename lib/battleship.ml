@@ -341,12 +341,12 @@ let print_custom_ship custom_ship =
     custom_ship.cells;
   print_grid grid true "Custom Ship"
 
-let count_ship_cells grid =
+let count_ship_cells grid custom_id =
   let count = ref 0 in
   for y = 0 to Array.length grid - 1 do
     for x = 0 to Array.length grid.(0) - 1 do
       match grid.(y).(x) with
-      | CustomShip _ -> incr count
+      | CustomShip { id; _ } when id = custom_id -> incr count
       | _ -> ()
     done
   done;

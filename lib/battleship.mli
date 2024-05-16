@@ -155,7 +155,7 @@ val create_custom_ship_from_grid : grid -> custom_ship
 val print_custom_ship : custom_ship -> unit
 (** [print_custom_ship custom_ship] prints details of [custom_ship] *)
 
-val count_ship_cells : grid -> int
+val count_ship_cells : grid -> int -> int
 val clear_custom_ship_from_grid : grid -> unit
 val parse_coord : string -> int * int
 val get_adjacent_coords : int * int -> (int * int) list

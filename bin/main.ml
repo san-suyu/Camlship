@@ -45,9 +45,9 @@ let process_coords grid count coord1 coord2 is_custom =
       && validate_coordinates y2 x2 (Array.length grid)
       && is_overlap grid ship_coords
     then (
-      if List.length ship_coords + count_ship_cells grid > max_cells then
+      if List.length ship_coords + count_ship_cells grid count > max_cells then
         raise InvalidPlacement;
-      let is_first_piece = count_ship_cells grid = 0 in
+      let is_first_piece = count_ship_cells grid count = 0 in
       let is_adjacent, adj_coords =
         is_adjacent_to_existing grid ship_coords count
       in
@@ -91,7 +91,7 @@ let process_coords grid count coord1 coord2 is_custom =
     false
 
 let rec read_coordinates grid count =
-  let remaining_cells = max_cells - count_ship_cells grid in
+  let remaining_cells = max_cells - count_ship_cells grid count in
   Printf.printf
     "You have %d cells remaining. Enter coordinates for the ship (Format: YX \
      YX, e.g., A1 A2) or type 'done' to finish:\n"
@@ -509,7 +509,12 @@ let rec game_loop grid_size =
       Printf.printf "or enter 'Powerup' to use a powerup:";
       try
         let input = read_line () in
-        if String.trim input = "powerup" || input = "p" then begin
+        if String.trim input = "" then (
+          Printf.printf
+            "Invalid input: Enter coordinates to shoot at (Format: Y X, e.g., \
+             B3):\n";
+          shoot_phase ())
+        else if String.trim input = "powerup" || input = "p" then begin
           powerups 0 ();
           print_grid grid2 false "Opponent's Grid";
           if not (check_game_over grid1 || check_game_over grid2) then (
@@ -717,7 +722,12 @@ let rec game_loop grid_size =
       Printf.printf "or enter 'Powerup' to use a powerup:";
       try
         let input = read_line () in
-        if String.trim input = "powerup" || input = "p" then begin
+        if String.trim input = "" then (
+          Printf.printf
+            "Invalid input: Enter coordinates to shoot at (Format: Y X, e.g., \
+             B3):\n";
+          duo_shoot_phase (player + 1) ())
+        else if String.trim input = "powerup" || input = "p" then begin
           powerups player_no ();
           print_grid grid3 false "Opponent's Grid";
           if not (check_game_over grid1 || check_game_over grid3) then
