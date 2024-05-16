@@ -43,7 +43,7 @@ let process_coords grid count coord1 coord2 is_custom =
     if
       validate_coordinates y1 x1 (Array.length grid)
       && validate_coordinates y2 x2 (Array.length grid)
-      && is_overlap grid ship_coords
+      && is_overlap grid ship_coords count
     then (
       if List.length ship_coords + count_ship_cells grid count > max_cells then
         raise InvalidPlacement;
@@ -220,7 +220,6 @@ let rec game_loop grid_size =
   let grid3 = create_grid grid_size in
   random_place_ships grid2;
 
-  (* random_place_mines grid2 5; *)
   let print_powerups () =
     ANSITerminal.printf [ ANSITerminal.yellow ]
       "You currently have %i gold to spend\n" !gold1;
@@ -481,7 +480,6 @@ let rec game_loop grid_size =
                top-left coordinate: (%d, %d)\n"
               custom.health custom.width custom.height (top_left_y + 1)
               (top_left_x + 1);
-            (* print_cell_types grid1; *)
             print_test_grid grid1;
             place_ships (count + 1) max_ships
           end
@@ -509,7 +507,6 @@ let rec game_loop grid_size =
                   | true ->
                       let () = Printf.printf "Ship placed successfully.\n" in
                       let () = print_grid grid1 true "Final Player's Grid" in
-                      (* print_cell_types grid1; *)
                       print_test_grid grid1;
                       place_ships (count + 1) max_ships
                   | false ->

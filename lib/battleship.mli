@@ -134,7 +134,7 @@ val assemble_custom_ship : (int * int) list list -> int -> custom_ship
 (** [assemble_custom_ship pieces id] assembles a custom ship from a list of
     coordinates [pieces] *)
 
-val is_overlap : grid -> (int * int) list -> bool
+val is_overlap : grid -> (int * int) list -> int -> bool
 
 val place_custom_ship : grid -> custom_ship -> int * int -> bool
 (** [place_custom_ship grid custom_ship (y, x)] attempts to place [custom_ship]

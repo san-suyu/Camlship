@@ -293,12 +293,12 @@ let create_custom_ship_from_grid grid =
     height;
   }
 
-let is_overlap grid ship_coords =
+let is_overlap grid ship_coords id =
   List.for_all
     (fun (y, x) ->
       match grid.(y).(x) with
       | Empty -> true
-      | CustomShip _ -> true
+      | CustomShip { id = existing_id; _ } -> id = existing_id
       | _ -> false)
     ship_coords
 
@@ -312,7 +312,7 @@ let place_custom_ship grid custom_ship top_left =
     List.for_all
       (fun (y, x) -> validate_coordinates y x (Array.length grid))
       offset_cells
-    && is_overlap grid offset_cells
+    && is_overlap grid offset_cells custom_ship.id
   then (
     let place_coordinate (y, x) = grid.(y).(x) <- CustomShip custom_ship in
     try
