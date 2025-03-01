@@ -1,5 +1,6 @@
-# 3110project
+# OCaml Final Project
 
+Team members:
 Xiaoxin Li (xl432)
 Kira Pinkney (kjp76)
 Conner Smith (css289)
